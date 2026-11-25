@@ -183,6 +183,49 @@ export function nameboard(kit, text, [x, y, z], yaw, { width = 3, height = 0.6, 
   }, { glow, pixels: 512 });
 }
 
+// 電車（両数ぶんつなぐ）
+export function train(kit, holder, cars, { color = "#c9cdd0", stripe = "#3a8a5c" } = {}) {
+  const body = kit.solid(color, { metalness: 0.5, roughness: 0.4 });
+  const band = kit.solid(stripe);
+  const dark = kit.solid("#2a2d31", { roughness: 0.7 });
+  for (let i = 0; i < cars; i += 1) {
+    const x = i * 18;
+    kit.rbox([17.4, 2.7, 2.7], 0.16, [x, 1.75, 0], body, undefined, holder);
+    kit.box([17.2, 0.24, 2.74], [x, 1.0, 0], band, undefined, holder);
+    kit.box([16.6, 0.4, 2.2], [x, 0.24, 0], dark, undefined, holder);
+    for (const side of [-1, 1]) {
+      for (let k = 0; k < 6; k += 1) kit.bulb([1.7, 0.8, 0.04], "#fff2d0", 1.0, [x - 6.6 + k * 2.6, 2.1, side * 1.36], undefined, holder);
+      for (const k of [-4.6, 0, 4.6]) kit.box([1.0, 2.0, 0.03], [x + k, 1.5, side * 1.365], kit.solid("#aeb4b8", { metalness: 0.5, roughness: 0.4 }), undefined, holder);
+    }
+  }
+  holder.traverse((object) => {
+    object.userData.pass = true;
+  });
+  return holder;
+}
+
+// 小さな駅のホーム（線路は -Z 側。東西に長い）。入口の位置を返す
+export function platform(kit, name, { length = 16, snow = false, stripe = "#3a8a5c" } = {}) {
+  const concrete = kit.solid(snow ? "#c9d4e4" : "#a29e96", { roughness: 0.95 });
+  kit.box([length, 0.9, 3.4], [0, 0.45, 0], concrete);
+  kit.box([length, 0.02, 0.3], [0, 0.91, -1.4], kit.solid("#d8b23a"));
+  for (let i = 0; i < 4; i += 1) kit.box([2.4, 0.22, 0.5], [length / 2 - 2.2, 0.11 + i * 0.22, 3.5 - i * 0.46], concrete);
+  // 屋根と柱
+  const post = kit.solid("#5a6066", { metalness: 0.4, roughness: 0.5 });
+  for (const x of [-4.4, 0, 4.4]) kit.box([0.16, 2.6, 0.16], [x, 2.2, 0.9], post);
+  kit.box([11, 0.14, 3.4], [0, 3.55, 0.2], kit.solid(snow ? "#dfe8f6" : "#6a6e74", { roughness: 0.9 })).userData.pass = true;
+  kit.bulb([1.2, 0.06, 0.14], "#fff4dc", 1.6, [-2.4, 3.42, 0.2]);
+  kit.bulb([1.2, 0.06, 0.14], "#fff4dc", 1.6, [2.4, 3.42, 0.2]);
+  kit.light("#fff0d4", 4.6, [0, 3.2, 0.2], 10, 1.5);
+  nameboard(kit, name, [0, 2.5, 0.8], 0, { width: 2.6, height: 0.7, back: "#f2efe6", ink: "#1f2a30", glow: 0.35 });
+  // 線路と、停まっている電車
+  for (const z of [-2.5, -3.9]) kit.box([70, 0.14, 0.1], [0, 0.1, z], kit.solid("#7d8084", { metalness: 0.7, roughness: 0.4 })).userData.pass = true;
+  kit.many(new THREE.BoxGeometry(0.24, 0.1, 2.4), kit.solid("#4a4038", { roughness: 1 }), Array.from({ length: 90 }, (_, i) => ({ position: [-35 + i * 0.78, 0.03, -3.2] })));
+  train(kit, kit.add(new THREE.Group(), [-9, 0.1, -3.2]), 2, { stripe });
+  kit.block([38, 3, 2.8], [0, 1.6, -3.2]);
+  return [0, 0.9, -0.9];
+}
+
 // ガードレール
 export function guardrail(kit, a, b, { height = 0.8, color = "#d4d6d8" } = {}) {
   const length = Math.hypot(b[0] - a[0], b[1] - a[1]);

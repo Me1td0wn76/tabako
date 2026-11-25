@@ -217,6 +217,19 @@ function loadImage(name) {
   return images.get(name);
 }
 
+// 使う素材のファイルと、それを静かに取っておく関数（裏での先読み用）
+export function assetUrls(modelNames, imageNames) {
+  return [...modelNames.map((name) => MODEL_URLS[name]), ...imageNames.map((name) => IMAGE_URLS[name])];
+}
+export async function preloadAssets(url) {
+  try {
+    const response = await fetch(url, { priority: "low" });
+    await response.arrayBuffer();
+  } catch {
+    // 先読みに失敗しても、使うときにもう一度取りに行く
+  }
+}
+
 // 決まった並びになる乱数（毎回同じ景色にする）
 export function seeded(seed) {
   let value = seed >>> 0;
@@ -306,9 +319,15 @@ export function wet(material, { scale = 0.5, amount = 0.5, dark = 0.5, base = 1 
  *   ふつうの場所   eye = 目の高さ。目を中心に SCALE 倍して、手と同じ座標系に重ねる
  *   街歩きの一部   parent = 地図の根（すでに SCALE 倍してある）。座標は地図の m。灯りは印だけ置き、当たり判定も集める
  */
-export async function createKit({ eye = 1.5, models: modelNames, images: imageNames, parent = null }) {
-  const loadedModels = Object.fromEntries(await Promise.all(modelNames.map(async (name) => [name, await loadModel(name)])));
-  const loadedImages = Object.fromEntries(await Promise.all(imageNames.map(async (name) => [name, await loadImage(name)])));
+export async function createKit({ eye = 1.5, models: modelNames, images: imageNames, parent = null, onStep = null }) {
+  const counted = async (name, load) => {
+    const result = await load(name);
+    onStep?.();
+    return [name, result];
+  };
+  const [modelList, imageList] = await Promise.all([Promise.all(modelNames.map((name) => counted(name, loadModel))), Promise.all(imageNames.map((name) => counted(name, loadImage)))]);
+  const loadedModels = Object.fromEntries(modelList);
+  const loadedImages = Object.fromEntries(imageList);
   const group = new THREE.Group();
   if (parent) parent.add(group);
   else {
@@ -972,8 +991,8 @@ export async function createKit({ eye = 1.5, models: modelNames, images: imageNa
         object.shadow.map = null;
       }
     });
-    // スマホでは、読み込んだ素材も手放す
-    if (LIGHT_MODE) {
+    // スマホや街歩きでは、読み込んだ素材も手放す
+    if (LIGHT_MODE || parent) {
       modelNames.forEach((name) => models.delete(name));
       imageNames.forEach((name) => images.delete(name));
     }

@@ -8,17 +8,10 @@ import { addSpot, localArea, localPoint, nameboard } from "./common.js";
  * キャンプ地。湖は西にある。座標は「焚き火の前に座る人」が原点の、いつものキャンプ場と同じ（-Z が湖）。
  */
 
-export const LAKE = {
-  id: "lake",
-  name: "湖のキャンプ場",
-  x: [-232, -128],
-  z: [-56, 56],
-  models: [...new Set([...CAMP.models, "picnic", "rowboat", "bbq", "car", "busstop", "stool", "tree", "bins", "cat", "npc_camper"])],
-  images: [...new Set([...CAMP.images, "concrete", "asphalt"])],
-};
+const FRAME = [[0, 0, 0], 0];
 
-export function buildLake(kit, api) {
-  kit.frame([-185, 0, 0], Math.PI / 2, () => {
+function ground(kit, api) {
+  kit.frame(...FRAME, () => {
     const random = seeded(23);
     /* ---- 地面・湖・森 ---- */
     const land = new THREE.PlaneGeometry(112, 92, 140, 116);
@@ -58,7 +51,11 @@ export function buildLake(kit, api) {
 
     /* ---- 焚き火 ---- */
     addSpot(kit, api, { id: "camp", name: "焚き火の前", at: [0, 0, 0], yaw: 0, eye: CAMP.eye, table: CAMP.spot, place: "camp", seat: { model: "campchair", at: [0, 0, 0.12], yaw: Math.PI, height: 0.8 }, build: () => campSet(kit) });
+  });
+}
 
+function around(kit, api) {
+  kit.frame(...FRAME, () => {
     /* ---- 桟橋の先 ---- */
     localArea(kit, api, { x: [1.78, 3.02], z: [-18.0, -11.2], y: -0.06, surface: "wood" });
     addSpot(kit, api, {
@@ -105,7 +102,8 @@ export function buildLake(kit, api) {
     streetLamp(kit, 4.6, 29.4, { height: 4, power: 7, reach: 11, color: "#ffe2b8", arm: -0.4 });
     streetLamp(kit, -5.4, 16, { height: 3.4, power: 5, reach: 9, color: "#ffd9a0", arm: 0.4 });
     streetLamp(kit, 5.4, 12, { height: 3.4, power: 5, reach: 9, color: "#ffd9a0", arm: -0.4 });
-    api.stop({ id: "lake", name: "湖のキャンプ場", at: localPoint(kit, api, at(3.6, 27.4)), to: { at: localPoint(kit, api, at(1.8, 26)), yaw: Math.PI / 2 } });
+    kit.put("bus", at(0.2, 31), { yaw: 0.1, height: 2.9 });
+    api.stop({ kind: "bus", at: localPoint(kit, api, at(3.2, 27.8)) });
 
     /* ---- ピクニック台 ---- */
     addSpot(kit, api, {
@@ -157,3 +155,13 @@ function cabin(kit, position) {
     kit.put("firewood", [-2.6, 0.1, 3.0], { height: 0.6 });
   });
 }
+
+export const LAKE = {
+  id: "lake",
+  name: "湖のキャンプ場",
+  bus: { name: "湖のキャンプ場", at: [1.8, 0.1, 27.4], yaw: 0 },
+  parts: [
+    { core: true, models: CAMP.models, images: [...new Set([...CAMP.images, "asphalt"])], build: ground },
+    { core: true, models: ["picnic", "rowboat", "bbq", "car", "busstop", "bus", "bins", "npc_camper", "tent", "campchair", "cooler", "lantern", "firewood", "stump", "mug", "logseat"], images: ["bark", "wood_plank"], build: around },
+  ],
+};

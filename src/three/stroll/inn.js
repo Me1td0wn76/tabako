@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { ENGAWA, engawaSet, gardenGround, pondDepth } from "../world/engawa.js";
 import { seeded, some } from "../world/kit.js";
 import { TAU, forest, ridges, stringLights } from "../world/parts.js";
-import { addSpot, framedScroll, localArea, localPoint, nameboard } from "./common.js";
+import { addSpot, framedScroll, localArea, localPoint, nameboard, platform } from "./common.js";
 
 /*
  * 雪見の宿（旅館）。座標は「縁側に座る人」が原点の、いつもの縁側と同じ（-Z が庭。床が 0、地面が -0.5）。
@@ -11,21 +11,14 @@ import { addSpot, framedScroll, localArea, localPoint, nameboard } from "./commo
 
 const YARD = -0.5;
 
-export const INN = {
-  id: "inn",
-  name: "雪見の宿",
-  x: [-50, 50],
-  z: [-236, -98],
-  models: [...new Set([...ENGAWA.models, "wagasa", "kotatsu", "ikebana", "bench", "busstop", "car", "npc_okami", "cat", "lantern"])],
-  images: [...new Set([...ENGAWA.images, "tatami", "kawara", "wood_plank", "plaster", "concrete"])],
-};
-
 function innGround(x, z) {
   return gardenGround(x, z) + Math.max(0, Math.abs(x) - 15) * 0.22 + Math.max(0, z - 44) * 0.0;
 }
 
-export function buildInn(kit, api) {
-  kit.frame([0, 0.5, -178], 0, () => {
+const FRAME = [[0, 0.5, 0], 0];
+
+function snowfield(kit, api) {
+  kit.frame(...FRAME, () => {
     const random = seeded(71);
     /* ---- 雪の地面・林・山 ---- */
     const land = new THREE.PlaneGeometry(100, 108, 160, 170);
@@ -35,24 +28,27 @@ export function buildInn(kit, api) {
     for (let i = 0; i < position.count; i += 1) position.setY(i, innGround(position.getX(i), position.getZ(i)));
     land.computeVertexNormals();
     kit.mesh(land, kit.material("snow", { repeat: [16, 17], color: "#c3d1e8", roughness: 0.95, bump: 2.2 })).userData.noCast = true;
-    localArea(kit, api, { x: [-15, 15], z: [-11, 50], y: innGround, surface: "snow", only: (x, z) => pondDepth(x, z) < -0.02 });
-    const house = (x, z) => Math.abs(x) < 9 && z > -14 && z < 12;
+    localArea(kit, api, { x: [-15, 15], z: [-11, 50.2], y: innGround, surface: "snow", only: (x, z) => pondDepth(x, z) < -0.02 });
+    const houseAt = (x, z) => Math.abs(x) < 9 && z > -14 && z < 12;
     forest(kit, { count: 260, x: [-60, 60], z: [-58, -26], y: YARD + 1, height: [7, 15], color: "#2a3a52", seed: 9, snow: "#7f93b4" });
-    forest(kit, { count: 130, x: [-48, -24], z: [-26, 50], y: YARD + 1.4, height: [7, 14], color: "#2a3a52", seed: 19, snow: "#7f93b4", avoid: house });
-    forest(kit, { count: 130, x: [24, 48], z: [-26, 50], y: YARD + 1.4, height: [7, 14], color: "#2a3a52", seed: 29, snow: "#7f93b4", avoid: house });
+    forest(kit, { count: 130, x: [-48, -24], z: [-26, 44], y: YARD + 1.4, height: [7, 14], color: "#2a3a52", seed: 19, snow: "#7f93b4", avoid: houseAt });
+    forest(kit, { count: 130, x: [24, 48], z: [-26, 44], y: YARD + 1.4, height: [7, 14], color: "#2a3a52", seed: 29, snow: "#7f93b4", avoid: houseAt });
     ridges(kit, [{ z: -120, color: "#22344f", height: 34, seed: 4 }]);
     kit.scatter("conifer", Array.from({ length: some(26) }, (_, i) => {
       const x = (i % 2 ? 1 : -1) * (16.4 + random() * 6);
-      const z = -20 + random() * 68;
+      const z = -20 + random() * 62;
       return { position: [x, innGround(x, z) - 0.1, z], yaw: random() * TAU, scale: 0.8 + random() * 0.5 };
     }), { color: "#93a6bc" });
+    approach(kit, api, random);
+    kit.particles({ count: 900, area: { x: [-18, 18], y: [YARD, 6.5], z: [8, 50] }, color: "#eef4ff", size: 0.02, fall: 0.5, sway: 0.25 });
+  });
+}
 
-    /* ---- 縁側と庭 ---- */
+function house(kit, api) {
+  kit.frame(...FRAME, () => {
     addSpot(kit, api, { id: "engawa", name: "旅館の縁側", at: [0, 0, 0], yaw: 0, eye: ENGAWA.eye, table: ENGAWA.spot, place: "engawa", seat: { model: "zabuton", at: [0, 0, 0.1], height: 0.1 }, build: () => engawaSet(kit) });
     building(kit, api);
-    approach(kit, api, random);
     footbath(kit, api);
-    kit.particles({ count: 900, area: { x: [-18, 18], y: [YARD, 6.5], z: [8, 50] }, color: "#eef4ff", size: 0.02, fall: 0.5, sway: 0.25 });
     kit.particles({ count: 360, area: { x: [-20, -7], y: [YARD, 6.5], z: [-12, 10] }, color: "#eef4ff", size: 0.02, fall: 0.5, sway: 0.25 });
   });
 }
@@ -186,10 +182,28 @@ function approach(kit, api, random) {
   for (const [x, z, h] of [[-9, 16, 3.8], [9.4, 14, 4.2], [-11, 24, 4.4], [11, 32, 4.0], [-7.6, 35, 3.6], [-8.4, 10.6, 3.2], [8.6, 41, 4.2]]) kit.put("pine", [x, innGround(x, z) - 0.05, z], { yaw: random() * TAU, height: h });
   stringLights(kit, [-2.1, 2.2, 28], [-2.4, 1.6, 40], { sag: 0.3, count: 8, radius: 0.03 });
   stringLights(kit, [2.1, 2.2, 28], [2.4, 1.6, 40], { sag: 0.3, count: 8, radius: 0.03 });
-  kit.put("busstop", [3.0, YARD, 44], { height: 2.5 });
-  kit.put("car", [-6.4, YARD, 43], { yaw: 0.3, color: "#8a94a4" });
-  kit.light("#ffd9a0", 4, [2.6, 2.0, 44], 8, 1.5);
-  api.stop({ id: "inn", name: "雪見の宿", at: localPoint(kit, api, [3.0, YARD, 44]), to: { at: localPoint(kit, api, [0.8, YARD, 43]), yaw: 0 } });
+  kit.put("car", [-8.4, YARD, 41], { yaw: 0.3, color: "#8a94a4" });
+  const gate = kit.frame([0, YARD, 48.6], Math.PI, () => ({ at: localPoint(kit, api, platform(kit, "雪見温泉駅", { snow: true, stripe: "#a8382c" })) }));
+  api.stop({ kind: "train", at: gate.at });
+  // 電車が出てきたトンネル
+  const portal = new THREE.Shape();
+  portal.moveTo(-6, 0);
+  portal.lineTo(-6, 6.2);
+  portal.lineTo(6, 6.2);
+  portal.lineTo(6, 0);
+  portal.lineTo(2.3, 0);
+  portal.lineTo(2.3, 2.4);
+  portal.absarc(0, 2.4, 2.3, 0, Math.PI, false);
+  portal.lineTo(-2.3, 0);
+  portal.lineTo(-6, 0);
+  const stone = kit.material("concrete", { repeat: [0.2, 0.2], color: "#8f8c86" });
+  for (const side of [-1, 1]) {
+    kit.mesh(new THREE.ExtrudeGeometry(portal, { depth: 1, bevelEnabled: false, curveSegments: 16 }), stone, [side * 27, YARD, 51.8], [0, Math.PI / 2, 0]);
+    kit.box([0.4, 4.6, 4.6], [side * 28.4, YARD + 2.3, 51.8], kit.solid("#05070a")).userData.pass = true;
+    const hill = kit.mesh(new THREE.SphereGeometry(1, 24, 12, 0, TAU, 0, Math.PI / 2), kit.material("snow", { repeat: [6, 3], color: "#b9c8e0" }), [side * 47, YARD - 1, 54]);
+    hill.scale.set(19, 15, 20);
+    hill.userData.far = true;
+  }
   // 門前の茶屋
   addSpot(kit, api, {
     id: "teahouse",
@@ -254,3 +268,13 @@ function footbath(kit, api) {
     });
   });
 }
+
+export const INN = {
+  id: "inn",
+  name: "雪見の宿",
+  train: { name: "雪見温泉駅", at: [-5.6, 0, 43.6], yaw: 0 },
+  parts: [
+    { core: true, models: ["pine", "toro", "stones", "snowbush", "conifer", "wagasa", "teaset", "hibachi", "andon", "car"], images: ["snow", "wood_dark", "kawara", "concrete"], build: snowfield },
+    { core: true, models: [...new Set([...ENGAWA.models, "kotatsu", "ikebana", "npc_okami", "cat"])], images: [...new Set([...ENGAWA.images, "tatami", "kawara", "wood_plank", "plaster"])], build: house },
+  ],
+};

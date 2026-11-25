@@ -139,7 +139,7 @@ function toLocal(solid, x, z) {
   return local;
 }
 
-export function createWalker(solids, areas) {
+export function createWalker(currentSolids, areas) {
   const body = { x: 0, y: 0, z: 0, vy: 0, surface: "road", moved: 0 };
   const found = { y: -Infinity, surface: "road" };
 
@@ -156,7 +156,7 @@ export function createWalker(solids, areas) {
       }
     }
     if (found.y === -Infinity) return found;
-    for (const solid of solids.near(x, z)) {
+    for (const solid of currentSolids().near(x, z)) {
       if (solid.y1 > feet + STEP || solid.y1 <= found.y) continue;
       if (solid.r) {
         if (Math.hypot(x - solid.x, z - solid.z) > solid.r) continue;
@@ -173,7 +173,7 @@ export function createWalker(solids, areas) {
   function pushOut(position, feet) {
     for (let pass = 0; pass < 3; pass += 1) {
       let hit = false;
-      for (const solid of solids.near(position.x, position.z)) {
+      for (const solid of currentSolids().near(position.x, position.z)) {
         if (solid.y1 <= feet + STEP || solid.y0 >= feet + BODY) continue;
         if (solid.r) {
           const dx = position.x - solid.x;

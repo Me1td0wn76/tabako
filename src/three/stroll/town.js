@@ -5,60 +5,21 @@ import { KISSATEN, kissatenSet } from "../world/kissaten.js";
 import { KONBINI, konbiniSet } from "../world/konbini.js";
 import { ROOFTOP, rooftopSet } from "../world/rooftop.js";
 import { TAU, antenna, can, cottages, powerPole, streetLamp, stringLights } from "../world/parts.js";
-import { SEAT_STAND, STAND, addSpot, facades, guardrail, nameboard, shopfronts, signboard, standAshtray } from "./common.js";
+import { SEAT_STAND, STAND, addSpot, facades, guardrail, nameboard, shopfronts, signboard, standAshtray, train } from "./common.js";
 
 /*
  * 都会。東西の大通り（z = 0）と南北の通り（x = 0）を中心に、
  *   北西：コンビニ　北東：駅前とオフィスビル　南西：純喫茶・公園・路地裏　南東：商店と自宅
  */
 
-export const TOWN = {
-  id: "town",
-  name: "都会",
-  x: [-76, 76],
-  z: [-76, 70],
-  models: [
-    ...new Set([
-      ...BALCONY.models, ...KONBINI.models, ...KISSATEN.models, ...ROOFTOP.models,
-      "house", "mixed", "bed", "desk", "bookshelf", "minifridge", "bus", "busstop", "chochin", "swing", "slide", "mailbox", "phonebooth", "yatai", "signal", "aboard", "cat", "clockpole", "taxi", "standash",
-      "npc_suit", "npc_shopper", "npc_smoker",
-    ]),
-  ],
-  images: [
-    ...new Set([
-      ...BALCONY.images, ...KONBINI.images, ...KISSATEN.images, ...ROOFTOP.images,
-      "facade", "facade2", "facade3", "facade4", "shopa", "shopb", "shopc", "shopd", "shutter", "paving", "grassland", "asphalt",
-    ]),
-  ],
-};
-
 const HOME = { at: [18, 6, 50.6], yaw: Math.PI };
 const KONBINI_AT = { at: [-27, 0, -9], yaw: 0 };
 const KISSATEN_AT = { at: [-11.5, 0.02, 9.6], yaw: Math.PI };
 const ROOF = { at: [23, 30, -13.6], yaw: 0 };
 
-export function buildTown(kit, api) {
-  const random = seeded(3);
-  api.area({ x: [-64, 64], z: [-62, 58], y: 0, surface: "road" });
-  streets(kit, random);
-  blocks(kit, random);
-  furniture(kit, random);
-  railway(kit);
-  home(kit, api);
-  office(kit, api);
-  coffee(kit, api);
-  // コンビニ
-  addSpot(kit, api, { id: "konbini", name: "コンビニ前", ...KONBINI_AT, eye: KONBINI.eye, table: KONBINI.spot, place: "konbini", lamp: ["#fff0dc", 3.6, [-1.0, 2.5, 7.9]], build: () => konbiniSet(kit) });
-  station(kit, api);
-  park(kit, api, random);
-  alley(kit, api);
-  traffic(kit);
-  outskirts(kit, random);
-}
-
 /* ---------------- 道 ---------------- */
 
-function streets(kit, random) {
+function streets(kit) {
   kit.ground([200, 162], 0, wet(kit.material("asphalt", { repeat: [30, 24], color: "#b6b8be", roughness: 0.8, bump: 1 }), { scale: 0.4, amount: 0.34, dark: 0.35 }), [0, -20]);
   const paving = kit.material("paving", { repeat: [1, 1], color: "#b9b6b4", roughness: 0.9, bump: 0.6 });
   const slabs = [];
@@ -108,7 +69,8 @@ function streets(kit, random) {
 
 /* ---------------- 建物 ---------------- */
 
-function blocks(kit, random) {
+function blocks(kit) {
+  const random = seeded(3);
   const B = (x0, x1, z0, z1, h) => ({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h });
   facades(kit, "facade3", [B(-25.4, -18, 7.4, 18, 10.5), B(13.6, 21, 7.4, 18, 13.5), B(31.4, 40, 7.4, 16.8, 16.5), B(-62, -48, -20, -7.4, 16.5), B(-32, -22, 21, 35.5, 9), B(7, 18, 20, 34, 9), B(50, 62, 18, 34, 15), B(-60, -46, 41, 57, 12), B(31, 44, 43, 57, 12)], { tile: [16, 15], glow: 0.9, gain: 1.15, threshold: 0.62, seed: 2 });
   facades(kit, "facade4", [B(-33, -26, 7.4, 17.4, 8.4), B(6.2, 13, 7.4, 17.6, 9.2), B(21.6, 30.6, 7.4, 17, 8.2), B(-11.6, -6.2, -18, -7.4, 8), B(-20, -7, 21, 35.5, 12), B(20, 33, 20, 34, 11.5), B(-32, -20, 43, 57, 8.5), B(47, 62, 43, 57, 14), { ...B(-15.6, -8.6, 7.4, 18.9, 6.4), y: 2.95 }], { tile: [18, 15], glow: 0.75, gain: 2.4, seed: 5 });
@@ -142,7 +104,7 @@ function blocks(kit, random) {
 
 /* ---------------- 電柱・街灯・並木・小物 ---------------- */
 
-function furniture(kit, random) {
+function lamps(kit) {
   for (const [z, list] of [[-6.7, [-56, -30, -14, 16, 34, 52]], [6.7, [-58, -44, -22, -4.6, 8, 26, 44, 58]]]) {
     for (const x of list) {
       streetLamp(kit, x, z, { height: 5.2, power: 13, reach: 15, color: "#ffd9a0", arm: z < 0 ? 0.5 : -0.5 });
@@ -163,7 +125,10 @@ function furniture(kit, random) {
   for (const x of [-60, -34.6, -10, 12, 36, 60]) kit.pillar(0.2, 6, [x, 0, 7.0]);
   for (const z of [12, 34, 56]) kit.pillar(0.2, 6, [-5, 0, z]);
   for (const x of [-58, -34, -10, 14, 38]) kit.pillar(0.2, 6, [x, 0, -32.4]);
+}
 
+function furniture(kit) {
+  const random = seeded(4);
   kit.scatter("tree", [[-50, 6.2], [-29, 6.2], [-21.6, 6.2], [17.4, 6.2], [35.6, 6.2], [46, 6.2], [55, 6.2], [-53, -6.2], [40, -6.2], [46, -6.2], [28, -8.6], [17, -8.6], [44, -26], [60, -26], [52, -27]].map(([x, z]) => ({ position: [x, 0.1, z], yaw: random() * TAU, height: 4.2 + random() * 1.2 })), { color: "#8b957f" });
   for (const [x, z] of [[-7.2, -4.8], [7.2, 4.8], [-4.8, 7.2], [4.8, -7.2]]) {
     const yaw = Math.abs(x) > Math.abs(z) ? (x < 0 ? Math.PI / 2 : -Math.PI / 2) : z > 0 ? Math.PI : 0;
@@ -202,21 +167,11 @@ function railway(kit) {
   for (let x = -71.5; x <= 78; x += 13) pillars.push({ geometry: new THREE.BoxGeometry(1.2, 6, 3.6), position: [x, 3, -54] });
   kit.merged(concrete, pillars);
   pillars.forEach(({ position }) => kit.block([1.2, 6, 3.6], position));
-  const train = kit.add(new THREE.Group(), [0, 6.9, -54]);
-  const body = kit.solid("#c9cdd0", { metalness: 0.5, roughness: 0.4 });
-  const stripe = kit.solid("#3a8a5c");
-  for (let i = 0; i < 4; i += 1) {
-    kit.rbox([17.4, 2.7, 2.7], 0.16, [i * 18, 1.75, 0], body, undefined, train);
-    kit.box([17.2, 0.24, 2.74], [i * 18, 1.0, 0], stripe, undefined, train).userData.pass = true;
-    for (const side of [-1, 1]) for (let k = 0; k < 6; k += 1) kit.bulb([1.7, 0.8, 0.04], "#fff2d0", 1.1, [i * 18 - 6.6 + k * 2.6, 2.1, side * 1.36], undefined, train);
-  }
-  train.traverse((object) => {
-    object.userData.pass = true;
-  });
+  const running = train(kit, kit.add(new THREE.Group(), [0, 6.8, -54]), 4);
   kit.onUpdate((delta, time) => {
     const t = (time + 8) % 34;
-    train.position.x = -190 + t * 24;
-    train.visible = t < 17;
+    running.position.x = -190 + t * 24;
+    running.visible = t < 17;
   });
 }
 
@@ -360,10 +315,11 @@ function station(kit, api) {
   kit.put("taxi", [58.6, 0, -2.6], { yaw: Math.PI / 2 });
   kit.put("taxi", [52.6, 0, -2.5], { yaw: Math.PI / 2 });
   kit.put("busstop", [46.4, 0.12, -5.2], { height: 2.5 });
-  kit.put("bus", [38.4, 0, -2.7], { yaw: Math.PI / 2, height: 2.9 });
+  kit.put("bus", [42.6, 0, -2.7], { yaw: Math.PI / 2, height: 2.9 });
   kit.put("npc_shopper", [47.8, 0.12, -6.0], { yaw: 2.9, color: "#e0d0d8" });
   kit.scatter("bush", [[40.6, -18], [40.6, -19.2], [40.6, -20.4], [61.4, -10], [61.4, -11.2], [61.4, -12.4], [61.4, -13.6], [61.4, -14.8]].map(([x, z], i) => ({ position: [x, 0.1, z], yaw: i, height: 0.9 })), { color: "#9aa890" });
-  api.stop({ id: "town", name: "風見駅前", at: [46.4, 0.12, -6.4], to: { at: [47.6, 0.12, -8.6], yaw: 0 } });
+  api.stop({ kind: "bus", at: [46.4, 0.12, -6.4] });
+  api.stop({ kind: "train", at: [51, 0.12, -30.0] });
   // 喫煙所：ガラスの仕切りとスタンド灰皿
   addSpot(kit, api, {
     id: "station",
@@ -401,7 +357,8 @@ function station(kit, api) {
 
 /* ---------------- 公園 ---------------- */
 
-function park(kit, api, random) {
+function park(kit, api) {
+  const random = seeded(6);
   const lawn = kit.material("grassland", { repeat: [5, 7], color: "#7f8f78", roughness: 1, bump: 1 });
   kit.ground([20, 27], 0.03, lawn, [-50, 22.5]);
   const path = kit.material("paving", { repeat: [1, 7], color: "#a8a49c" });
@@ -507,7 +464,8 @@ function traffic(kit) {
 
 /* ---------------- 街の外 ---------------- */
 
-function outskirts(kit, random) {
+function outskirts(kit) {
+  const random = seeded(8);
   // 南の端：ガードレールと植え込み、その先の家並みと高層ビル
   guardrail(kit, [-64, 58.6], [64, 58.6]);
   kit.scatter("bush", Array.from({ length: some(60) }, (_, i) => ({ position: [-63 + i * 2.1, 0, 60 + random()], yaw: random() * TAU, height: 1 + random() * 0.4 })), { color: "#8f9d84" });
@@ -525,6 +483,13 @@ function outskirts(kit, random) {
   kit.towers({ count: 24, area: { x: [84, 150], z: [34, 58] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 29, glow: 1.0, gain: 1.7, kinds: 3 });
   kit.towers({ count: 20, area: { x: [80, 150], z: [-120, -34] }, base: 0, height: [8, 30], width: [10, 16], image: "facade", seed: 31, glow: 1.0, gain: 1.7, kinds: 3 });
   kit.towers({ count: 20, area: { x: [-150, -80], z: [-120, -34] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 37, glow: 1.0, gain: 1.7, kinds: 3 });
+  // 通りの端：この先は電車かバスで
+  for (const side of [-1, 1]) {
+    guardrail(kit, [side * 62.4, -7.4], [side * 62.4, 7.4]);
+    nameboard(kit, "この先、電車・バスをご利用ください", [side * 62.2, 1.5, 0], side > 0 ? -Math.PI / 2 : Math.PI / 2, { width: 4.4, height: 0.5, back: "#f0c23a", ink: "#20242a", glow: 0.25 });
+  }
+  guardrail(kit, [-6.2, -59.6], [6.2, -59.6]);
+  nameboard(kit, "この先、電車・バスをご利用ください", [0, 1.5, -59.4], 0, { width: 4.4, height: 0.5, back: "#f0c23a", ink: "#20242a", glow: 0.25 });
   // 街の端を、家と塀でふさぐ
   const wall = kit.material("concrete", { repeat: [20, 0.5], color: "#86827c" });
   for (const x of [-63.4, 63.4]) {
@@ -540,3 +505,77 @@ function outskirts(kit, random) {
   antenna(kit, [-28, 9, 28], { height: 2.4 });
   antenna(kit, [14, 9, 27], { height: 2.4, yaw: 1 });
 }
+
+/* ---------------- 部品（着いた所のまわりから順に組み立てる） ---------------- */
+
+const unique = (...lists) => [...new Set(lists.flat())];
+
+export const TOWN = {
+  id: "town",
+  name: "都会",
+  start: { at: [18, 6, 48.6], yaw: Math.PI }, // 旅の始まりは自分の部屋
+  train: { name: "風見駅", at: [51, 0.12, -28.6], yaw: Math.PI },
+  bus: { name: "風見駅前", at: [47.4, 0.12, -8.4], yaw: 0 },
+  parts: [
+    {
+      core: true,
+      models: ["house", "bush", "tree"],
+      images: ["asphalt", "paving", "concrete", "brickwall", "facade", "facade2", "facade3", "facade4", "shopa", "shopb", "shopc", "shopd", "shutter"],
+      build(kit, api) {
+        api.area({ x: [-62, 62], z: [-59.4, 58], y: 0, surface: "road" });
+        streets(kit);
+        blocks(kit);
+        lamps(kit);
+        outskirts(kit);
+      },
+    },
+    {
+      core: true,
+      models: unique(BALCONY.models, ["bed", "desk", "bookshelf", "minifridge", "bicycle"]),
+      images: unique(BALCONY.images, ["facade3"]),
+      build: home,
+    },
+    {
+      models: ["tree", "signal", "mailbox", "phonebooth", "vending", "aboard", "bicycle", "scooter", "car", "truck", "bins", "cat", "npc_shopper", "npc_suit"],
+      images: ["concrete"],
+      build(kit) {
+        furniture(kit);
+        railway(kit);
+        traffic(kit);
+      },
+    },
+    {
+      near: { x: 0, z: 14, r: 90 },
+      models: KISSATEN.models.concat("potplant", "aboard"),
+      images: unique(KISSATEN.images, ["brickwall"]),
+      build: coffee,
+    },
+    {
+      near: { x: -27, z: -14, r: 78 },
+      models: KONBINI.models,
+      images: KONBINI.images,
+      build(kit, api) {
+        addSpot(kit, api, { id: "konbini", name: "コンビニ前", ...KONBINI_AT, eye: KONBINI.eye, table: KONBINI.spot, place: "konbini", lamp: ["#fff0dc", 3.6, [-1.0, 2.5, 7.9]], build: () => konbiniSet(kit) });
+      },
+    },
+    {
+      near: { x: 51, z: -20, r: 84 },
+      models: ["clockpole", "bench", "taxi", "busstop", "bus", "npc_shopper", "npc_smoker", "bush"],
+      images: [],
+      build: station,
+    },
+    {
+      near: { x: -38, z: 50, r: 70 },
+      models: ["yatai", "chochin", "crates", "bins", "aboard", "stool"],
+      images: ["wood_plank"],
+      build: alley,
+    },
+    {
+      near: { x: -50, z: 22, r: 66 },
+      models: ["bush", "tree", "swing", "slide", "clockpole", "bench", "cat"],
+      images: ["grassland", "paving"],
+      build: park,
+    },
+    { models: unique(ROOFTOP.models, ["potplant"]), images: ROOFTOP.images, build: office },
+  ],
+};

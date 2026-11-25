@@ -1,23 +1,16 @@
 import { HARBOR, harborFar, harborSet } from "../world/harbor.js";
 import { seeded } from "../world/kit.js";
 import { TAU, can, powerPole, streetLamp } from "../world/parts.js";
-import { SEAT_STAND, addSpot, guardrail, localArea, localPoint, nameboard, standAshtray } from "./common.js";
+import { SEAT_STAND, addSpot, guardrail, localArea, localPoint, nameboard, platform, standAshtray } from "./common.js";
 
 /*
  * 港（釣り場）。海は東にある。座標は「岸壁の釣り座」が原点の、いつもの港と同じ（-Z が海、+X が船着き場）。
  */
 
-export const PORT = {
-  id: "port",
-  name: "港",
-  x: [118, 250],
-  z: [-64, 64],
-  models: [...new Set([...HARBOR.models, "busstop", "npc_fisher", "cat", "vending", "bench", "standash", "stool", "bicycle", "car", "crates"])],
-  images: [...new Set([...HARBOR.images, "steel", "wood_plank"])],
-};
+const FRAME = [[0, 0, 0], 0];
 
-export function buildPort(kit, api) {
-  kit.frame([160, 0, 0], -Math.PI / 2, () => {
+function quay(kit, api) {
+  kit.frame(...FRAME, () => {
     const random = seeded(53);
     kit.water({ size: [620, 480], y: -1.5, position: [0, -225], deep: "#123850", shallow: "#7f8c9a", sparkle: "#ffe4c4", glitter: 0.14, scale: 0.5, lights: [[[70, 16, -420], "#ffb878"], [[-14, 6, -60], "#5a4a3a"]] });
     harborFar(kit);
@@ -62,7 +55,12 @@ export function buildPort(kit, api) {
         can(kit, [0.3, 0.56, -1.5], { color: "#6d2a1e", band: "#d8b26a" });
       },
     });
+  });
+}
 
+function village(kit, api) {
+  kit.frame(...FRAME, () => {
+    const random = seeded(54);
     /* ---- 漁協・番屋前 ---- */
     addSpot(kit, api, {
       id: "fishery",
@@ -83,9 +81,9 @@ export function buildPort(kit, api) {
     kit.put("bicycle", [17.6, 0, -6.4], { height: 1.04, yaw: 0.3 });
 
     /* ---- 港の町 ---- */
-    nameboard(kit, "風見漁港", [-6, 2.5, 30], Math.PI, { width: 2.6, height: 0.7, back: "#1f4f86" });
-    for (const x of [-7, -5]) kit.cylinder(0.06, 0.06, 2.7, [x, 1.35, 30], kit.solid("#5a6066"), undefined, undefined, 10);
-    const houses = [[-24, 16, 0.2], [-25, 27, 1.6], [24, 14, -0.3], [25, 25, 1.7], [-13, 33, 3.1], [14, 34, 3.2]];
+    nameboard(kit, "風見漁港", [-8, 2.5, 27], Math.PI, { width: 2.6, height: 0.7, back: "#1f4f86" });
+    for (const x of [-9, -7]) kit.cylinder(0.06, 0.06, 2.7, [x, 1.35, 27], kit.solid("#5a6066"), undefined, undefined, 10);
+    const houses = [[-24, 16, 0.2], [-25, 27, 1.6], [24, 14, -0.3], [25, 25, 1.7], [-24, 35, 3.1], [25, 35, 3.2]];
     kit.scatter("house", houses.map(([x, z, yaw]) => ({ position: [x, 0, z], yaw, scale: 0.9 })), { color: "#d0c4b8" });
     kit.put("shed", [-13, 0, 12], { height: 3.4, yaw: 0.3 });
     kit.put("shed", [13.5, 0, 15], { height: 3.6, yaw: -0.4, color: "#c8d0d8" });
@@ -100,7 +98,17 @@ export function buildPort(kit, api) {
     streetLamp(kit, 4.6, 20, { height: 4.2, power: 2.4, reach: 9, color: "#ffe8c8", arm: -0.4 });
     streetLamp(kit, -5, 10, { height: 4.2, power: 2.4, reach: 9, color: "#ffe8c8", arm: 0.4 });
     kit.scatter("tree", [[-20, 22], [20, 32], [-21, 34], [27, 18]].map(([x, z]) => ({ position: [x, 0, z], yaw: random() * TAU, height: 5 + random() * 1.6 })), { color: "#9aa894" });
-    kit.put("busstop", [4.2, 0, 28], { height: 2.5 });
-    api.stop({ id: "port", name: "風見漁港", at: localPoint(kit, api, [4.2, 0, 28]), to: { at: localPoint(kit, api, [2.4, 0, 26.5]), yaw: -Math.PI / 2 } });
+    const gate = kit.frame([0, 0, 35.4], Math.PI, () => ({ at: localPoint(kit, api, platform(kit, "風見漁港駅", { stripe: "#2f6f9c" })) }));
+    api.stop({ kind: "train", at: gate.at });
   });
 }
+
+export const PORT = {
+  id: "port",
+  name: "風見漁港",
+  train: { name: "風見漁港駅", at: [5.4, 0, 30.6], yaw: 0 },
+  parts: [
+    { core: true, models: [...new Set([...HARBOR.models, "npc_fisher", "stool", "crates"])], images: [...new Set([...HARBOR.images, "quay"])], build: quay },
+    { core: true, models: ["house", "shed", "truck", "car", "fishcrates", "nets", "tree", "cat", "vending", "bench", "bicycle"], images: [], build: village },
+  ],
+};
