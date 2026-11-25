@@ -31,6 +31,7 @@ export const MATCH_SETTINGS = {
     wearOutside: 0.9, // 着火場所の外を擦った長さで軸が傷む
     breakPressure: Infinity,
     breakTime: 1,
+    steady: 1, // 紙マッチの本体の持ちにくさ（傾きやすさ・ずり落ちやすさ）
     life: 16, // 燃え尽きるまでの秒数
     blowSpeed: 1.05,
     stock: 10,
@@ -45,6 +46,7 @@ export const MATCH_SETTINGS = {
     wearOutside: 1.1,
     breakPressure: 0.8,
     breakTime: 0.12,
+    steady: 1,
     life: 10,
     blowSpeed: 0.8,
     stock: 6,
@@ -85,7 +87,7 @@ function tableMaterial(surface) {
 }
 
 export function createMatchCloseup({ kind = "box" } = {}) {
-  const cfg = MATCH_SETTINGS[kind];
+  const cfg = { ...MATCH_SETTINGS[kind] }; // 難易度ごとの調整は tune() で重ねる
   const paper = kind === "paper";
 
   const scene = new THREE.Scene();
@@ -241,6 +243,14 @@ export function createMatchCloseup({ kind = "box" } = {}) {
     zoneMesh.position.x = state.zone;
   }
 
+  // 難易度ごとの、擦りやすさの調整
+  function tune(changes = {}) {
+    Object.assign(cfg, MATCH_SETTINGS[kind], changes);
+    zoneMesh.scale.x = cfg.zone / MATCH_SETTINGS[kind].zone;
+    state.sweet = [cfg.sweet[0] / 1.2, cfg.sweet[1] / 1.2];
+    state.pressLimit = paper ? cfg.breakPressure : 1;
+  }
+
   function enter({ fresh = true } = {}) {
     Object.assign(state.target, REST_TARGET);
     Object.assign(state.head, REST_TARGET);
@@ -343,7 +353,7 @@ export function createMatchCloseup({ kind = "box" } = {}) {
     book.v = THREE.MathUtils.clamp(book.v + left.y * speed * dt, BOOK.rest.v - BOOK.limit.v, BOOK.rest.v + BOOK.limit.v);
     book.tilt += left.tilt * BOOK.turn * dt;
     // 端を押すと傾く。しっかり持っているほど傾きにくい
-    book.tilt -= state.local.u * state.effectivePressure * (2.4 - book.hold * 1.3) * 4.2 * dt;
+    book.tilt -= state.local.u * state.effectivePressure * (2.4 - book.hold * 1.3) * 4.2 * cfg.steady * dt;
     if (!left.tilt) book.tilt *= Math.exp(-dt * 0.35);
     book.tilt = THREE.MathUtils.clamp(book.tilt, -BOOK.limit.tilt, BOOK.limit.tilt);
     // 震え
@@ -353,7 +363,7 @@ export function createMatchCloseup({ kind = "box" } = {}) {
     book.tilt += Math.sin(time * 13) * input.tremor * 0.0022;
     // 持つ力が足りないと、ずり落ちる
     const required = 0.4 + 0.35 * state.pressure;
-    if (state.grace <= 0 && book.hold < required) book.slip += (required - book.hold) * 1.3 * dt;
+    if (state.grace <= 0 && book.hold < required) book.slip += (required - book.hold) * 1.3 * cfg.steady * dt;
     else book.slip = Math.max(0, book.slip - 0.4 * dt);
     if (book.slip >= 1) {
       book.slip = 0;
@@ -643,5 +653,5 @@ export function createMatchCloseup({ kind = "box" } = {}) {
   }
 
   enter();
-  return { scene, camera, state, update, enter, jolt, resize, home() {}, setPlace, forwardSide: "右", kind, settings: cfg };
+  return { scene, camera, state, update, enter, jolt, resize, home() {}, setPlace, tune, forwardSide: "右", kind, settings: cfg };
 }

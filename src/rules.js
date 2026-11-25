@@ -7,6 +7,7 @@
  *   wind       風の強さ
  *   windFlip   風向きが勝手に変わる間隔（秒）。null = 変わらない
  *   stock      マッチの本数
+ *   match      マッチの擦りやすさの調整（closeupMatch.js の MATCH_SETTINGS に重ねる）
  *   gas        ライターのガスの残り（秒）。null = 無限
  *   events     お邪魔の間隔（秒）[短, 長]
  *   firstEvent 最初のお邪魔までの秒数
@@ -22,6 +23,7 @@ const BASE = {
   wind: 1,
   windFlip: null,
   stock: null,
+  match: {},
   gas: null,
   events: [4, 7],
   firstEvent: 6,
@@ -31,6 +33,13 @@ const BASE = {
 };
 
 const rules = (changes) => ({ ...BASE, ...changes });
+
+// マッチの擦りやすさ：帯の広さ・着火場所の長さ・軸の傷みやすさ・折れやすさ
+const MATCH = {
+  gentlePaper: { sweet: [0.22, 0.74], zone: 0.036, pass: 0.27, wearRate: 1.2, wearOutside: 0.6, breakPressure: 0.92, breakTime: 0.32, steady: 0.65 },
+  toughPaper: { sweet: [0.28, 0.56], zone: 0.022, pass: 0.26, wearRate: 2.4, wearOutside: 1.4, breakPressure: 0.75, breakTime: 0.14, steady: 1.25 },
+  toughBox: { sweet: [0.4, 0.76], zone: 0.028, pass: 0.26, wearRate: 2, wearOutside: 1.25 },
+};
 
 export const FAIL_LINE = 60; // 制限時間のない難易度で、これを超えたらランク F
 
@@ -61,8 +70,8 @@ export const DIFFICULTIES = {
     place: "rooftop",
     notifications: 3,
     ranks: [32, 44, 56, 66, 75],
-    rules: rules({ breath: 0.6, timeLimit: 75, stock: 6, heatRate: 0.6 }),
-    note: "左手に紙マッチ、右手に 1 本。両手で擦る。6 本。",
+    rules: rules({ breath: 0.6, timeLimit: 75, stock: 8, heatRate: 0.68, match: MATCH.gentlePaper }),
+    note: "左手に紙マッチ、右手に 1 本。両手で擦る。8 本。",
     limits: ["制限 75 秒", "息が短い", "火がつきにくい"],
   },
   oni: {
@@ -81,9 +90,9 @@ export const DIFFICULTIES = {
     place: "engawa",
     notifications: 3,
     ranks: [26, 34, 42, 50, 58],
-    rules: rules({ breath: 0.5, timeLimit: 58, wind: 1.3, windFlip: 6, stock: 5, heatRate: 0.85, events: [2.6, 4.6], firstEvent: 3, stress: 1.6 }),
-    note: "吹雪。風向きが勝手に変わる。5 本。",
-    limits: ["制限 58 秒", "風向きが変わる", "5 本"],
+    rules: rules({ breath: 0.5, timeLimit: 58, wind: 1.3, windFlip: 6, stock: 5, heatRate: 0.8, match: MATCH.toughBox, events: [2.6, 4.6], firstEvent: 3, stress: 1.6 }),
+    note: "吹雪。風向きが勝手に変わり、ヤスリも荒れている。5 本。",
+    limits: ["制限 58 秒", "風向きが変わる", "ヤスリが悪い"],
   },
   extreme: {
     label: "極",
@@ -91,9 +100,9 @@ export const DIFFICULTIES = {
     place: "camp",
     notifications: 4,
     ranks: [40, 50, 60, 70, 80],
-    rules: rules({ breath: 0.45, timeLimit: 80, wind: 1.25, stock: 4, heatRate: 0.55, events: [2.2, 4], firstEvent: 3, stress: 1.9, blind: true }),
-    note: "ゲージが見えない。手の感覚だけで擦る。4 本。",
-    limits: ["制限 80 秒", "ゲージなし", "4 本"],
+    rules: rules({ breath: 0.45, timeLimit: 80, wind: 1.25, stock: 4, heatRate: 0.6, match: MATCH.toughPaper, events: [2.2, 4], firstEvent: 3, stress: 1.9, blind: true }),
+    note: "ゲージが見えない。折れやすい紙マッチを、手の感覚だけで擦る。4 本。",
+    limits: ["制限 80 秒", "ゲージなし", "折れやすい"],
   },
 };
 
@@ -107,6 +116,17 @@ export const CHILL_KEYS = ["easy", "normal", "hard"];
 const ROUND_TOOLS = ["lighter", "boxMatch", "paperMatch"];
 const ROUND_PLACES = ["balcony", "konbini", "rooftop", "harbor", "engawa", "camp", "kissaten"];
 const ROUND_STOCK = { boxMatch: 8, paperMatch: 6 };
+
+// 2 つの調整のあいだを t（0〜1）で混ぜる
+function between(a, b, t) {
+  const mix = (x, y) => x + (y - x) * t;
+  return Object.fromEntries(Object.keys(b).map((key) => [key, Array.isArray(b[key]) ? b[key].map((y, i) => mix(a[key][i], y)) : mix(a[key], b[key])]));
+}
+
+const ROUND_MATCH = {
+  boxMatch: [{ sweet: [0.34, 0.8], zone: 0.034, pass: 0.27, wearRate: 1.5, wearOutside: 0.9 }, MATCH.toughBox],
+  paperMatch: [MATCH.gentlePaper, MATCH.toughPaper],
+};
 
 export function unlimitedRound(n) {
   const tool = ROUND_TOOLS[n % ROUND_TOOLS.length];
@@ -122,8 +142,9 @@ export function unlimitedRound(n) {
       wind: 1 + n * 0.05,
       windFlip: n >= 6 ? Math.max(4, 9 - n * 0.4) : null,
       stock: ROUND_STOCK[tool] ? Math.max(2, ROUND_STOCK[tool] - Math.floor(n / 3)) : null,
+      match: ROUND_MATCH[tool] ? between(...ROUND_MATCH[tool], Math.min(1, n / 12)) : {},
       gas: tool === "lighter" && n >= 3 ? Math.max(6, 16 - n) : null,
-      heatRate: Math.max(0.5, (tool === "paperMatch" ? 0.75 : 1) - n * 0.02),
+      heatRate: Math.max(0.6, (tool === "paperMatch" ? 0.85 : 1) - n * 0.02),
       events: [Math.max(1.8, 4 - n * 0.22), Math.max(3, 7 - n * 0.35)],
       firstEvent: Math.max(2, 6 - n * 0.4),
       stress: 1 + n * 0.07,

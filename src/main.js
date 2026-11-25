@@ -1390,6 +1390,7 @@ function enterIgnite({ fresh }) {
   state.closeDY = 0;
   const closeup = getCloseup(state.tool);
   // 前回の点火状態が残らないよう、暗転を待たずにすぐリセットする
+  closeup.tune?.(state.rules.match);
   closeup.enter({ fresh });
   renderIgniteSteps(closeup);
   switchView("close");
@@ -1615,7 +1616,7 @@ function updateLightPhase(delta) {
 
   // マッチは燃え尽きる
   if (isMatchTool()) {
-    state.matchBurn += delta / MATCH_SETTINGS[TOOLS[state.tool].kind].life;
+    state.matchBurn += delta / getCloseup(state.tool).settings.life;
     if (state.matchBurn >= 1) {
       state.shake = Math.max(state.shake, 0.4);
       flameOut("あつっ！ マッチが燃え尽きた", { spend: true });
