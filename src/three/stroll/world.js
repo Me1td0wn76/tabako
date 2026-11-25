@@ -29,15 +29,15 @@ const LOOKS = {
   lake: {
     sky: { top: "#040818", horizon: "#1a2c52", below: "#0a1020", glow: "#142238", cloud: "#18233c", sun: "#000000", stars: 1.2, milky: 1.2, clouds: 0, height: 0.5 },
     sunAt: [0, -0.03, 1],
-    light: { sky: ["#8aa4dc", "#48443e", 2.5], moon: ["#a8bef0", 2.3, [0.5, 0.8, 0.4]] },
+    light: { sky: ["#8aa4dc", "#48443e", 2.5], moon: ["#a8bef0", 2.3, [0.46, 0.76, 0.46]] },
     fog: ["#0c1424", 0.006],
     reflect: 1.1,
     outdoor: 0.7,
   },
   port: {
     sky: { top: "#5c92d6", horizon: "#eec8a6", below: "#5d7488", glow: "#4a2a1a", cloud: "#e8b8a0", sun: "#b8764a", stars: 0, milky: 0, clouds: 0.3, height: 0.3 },
-    sunAt: [1, 0.03, 0.16],
-    light: { sky: ["#b0c8ec", "#7a6658", 1.5], moon: ["#ffc498", 2.0, [0.8, 0.34, 0.45]] },
+    sunAt: [0.16, 0.03, -1],
+    light: { sky: ["#b0c8ec", "#7a6658", 1.5], moon: ["#ffc498", 2.0, [0.46, 0.34, -0.8]] },
     fog: ["#a8806a", 0.0026],
     reflect: 0.8,
     outdoor: 1,
@@ -465,6 +465,7 @@ export function createStrollWorld({ scene, camera, renderer, capture }) {
     get region() {
       return region;
     },
+    walls: () => solids.walls(),
     cars: () => parts.find(({ kit }) => kit.cars)?.kit.cars,
   };
 }

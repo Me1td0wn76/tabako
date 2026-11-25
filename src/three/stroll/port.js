@@ -106,7 +106,7 @@ function village(kit, api) {
 export const PORT = {
   id: "port",
   name: "風見漁港",
-  train: { name: "風見漁港駅", at: [5.4, 0, 30.6], yaw: 0 },
+  train: { name: "風見漁港駅", at: [-5.4, 0, 30.4], yaw: 0 },
   parts: [
     { core: true, models: [...new Set([...HARBOR.models, "npc_fisher", "stool", "crates"])], images: [...new Set([...HARBOR.images, "quay"])], build: quay },
     { core: true, models: ["house", "shed", "truck", "car", "fishcrates", "nets", "tree", "cat", "vending", "bench", "bicycle"], images: [], build: village },

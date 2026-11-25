@@ -75,6 +75,7 @@ SOUNDS = {
     "elevator": ("Elevator arrival ding and doors sliding open" + ", clean, no music, no voice", 4, "shot", 2.2),
     "door": ("Japanese wooden sliding door opening smoothly, short" + DRY, 3, "shot", 0.9),
     "bus": ("City bus stopping and opening its pneumatic doors with a hiss, then leaving" + ", field recording, no music, no voice", 6, "shot", 4.2),
+    "train": ("Japanese local train departing, door chime, doors closing, electric motor accelerating and wheels clacking on rails" + ", field recording, no music, no voice", 7, "shot", 5.0),
     "amb_city": ("Busy small Japanese city street at dusk, distant traffic, footsteps of a few people, faint train passing" + FIELD, 16, "loop", 11.0),
     # 環境音（場所ごと）
     "rain": ("Steady heavy rain falling on a concrete balcony" + FIELD, 14, "loop", 9.0),

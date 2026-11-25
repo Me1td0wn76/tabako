@@ -1,16 +1,17 @@
 import * as THREE from "three";
 import { SCALE } from "./three/world/kit.js";
-import { createStrollWorld } from "./three/stroll/world.js";
+import { createTravel } from "./travel.js";
 
 /*
  * ぶらり喫煙の旅。一人称で地図を歩き、灰皿のある所で一服する。
  *   歩く → 灰皿のそばで「一服する」→ 火のつけ方を選ぶ → 腰を下ろす（点火からは main.js）→ 立ち上がる
+ * 土地から土地へは電車かバスで移る。移動の間（読み込みの間）は、車窓の画面を出す。
  */
 
 const WALK = 3.1; // m/秒
 const RUN = 6.2;
 const EYE_HEIGHT = 1.56;
-const REACH = { spot: 2.5, portal: 1.9, stop: 2.3 };
+const REACH = { spot: 2.5, portal: 1.9, stop: 2.6 };
 const LOOK_SPEED = 0.0021;
 const TOUCH_LOOK = 0.0052;
 const STORAGE = "windproof-stroll-visited";
@@ -44,6 +45,21 @@ const LINES = {
 };
 
 const REGION_NAMES = { town: "都会", lake: "湖のキャンプ場", port: "風見漁港", inn: "雪見の宿" };
+// 乗り物の行き先。線路は街・港・旅館、バスは街と湖をつなぐ
+const LINES_OUT = { train: ["town", "port", "inn"], bus: ["town", "lake"] };
+const STATION = { town: "風見駅", port: "風見漁港駅", inn: "雪見温泉駅", lake: "湖のキャンプ場" };
+const SPOTS_IN = { town: 7, lake: 3, port: 3, inn: 3 }; // 土地ごとの喫煙所の数
+const RIDE_TIME = 3400; // 車窓を見せる、短くてもこれだけ（ミリ秒）
+// 喫煙所の名前と土地（地図の一覧用）
+const SPOT_NAMES = {
+  home: "自宅のベランダ", konbini: "コンビニ前", kissaten: "純喫茶 ゆらぎ", station: "駅前の喫煙所", park: "公園のベンチ", alley: "路地裏の屋台", roof: "ビルの屋上",
+  camp: "焚き火の前", pier: "湖の桟橋", picnic: "林のピクニック台",
+  harbor: "岸壁の釣り座", lighthouse: "灯台の下", fishery: "番屋の前",
+  engawa: "旅館の縁側", ashiyu: "足湯", teahouse: "門前の茶屋",
+};
+const REGION_OF = Object.fromEntries(
+  Object.entries({ town: ["home", "konbini", "kissaten", "station", "park", "alley", "roof"], lake: ["camp", "pier", "picnic"], port: ["harbor", "lighthouse", "fishery"], inn: ["engawa", "ashiyu", "teahouse"] }).flatMap(([region, list]) => list.map((id) => [id, region])),
+);
 const AMBIENCE = { town: "city", lake: "camp", port: "harbor", inn: "engawa" };
 
 export function createStroll({ scene, camera, renderer, environment, container, touch, sfx, keys, toast, lockPointer, unlockPointer, onSmoke, onLeaveSeat, spotCount = 16 }) {
@@ -75,13 +91,15 @@ export function createStroll({ scene, camera, renderer, environment, container, 
   root.innerHTML = `
     <span class="stroll-dot" aria-hidden="true"></span>
     <div class="stroll-place" aria-live="polite"><small></small><strong></strong></div>
+    <span class="stroll-stream" hidden>読み込み中…</span>
     <div class="stroll-stamps" aria-label="一服した喫煙所"><b>0</b> / ${spotCount} <small>喫煙所</small></div>
     <button class="stroll-prompt" type="button" hidden><kbd>E</kbd><span></span></button>
     <div class="stroll-buttons only-touch"><button type="button" data-stroll="map">地図</button></div>
     <div class="stroll-menu" role="dialog" aria-modal="true" hidden><div class="stroll-panel"><p class="eyebrow"></p><h3></h3><div class="stroll-cards"></div><button class="ghost-button stroll-cancel" type="button">やめる <kbd>Esc</kbd></button></div></div>
-    <div class="stroll-map" role="dialog" aria-label="地図" hidden><div class="stroll-panel"><p class="eyebrow">MAP</p><h3>喫煙所めぐり</h3><canvas width="900" height="560"></canvas><p class="stroll-legend"><i class="done"></i>一服した　<i class="seen"></i>見つけた　<span>灰皿のある所で吸えます</span></p><button class="ghost-button stroll-cancel" type="button">閉じる <kbd>M</kbd></button></div></div>
+    <div class="stroll-map" role="dialog" aria-label="地図" hidden><div class="stroll-panel"><p class="eyebrow">MAP</p><h3>喫煙所めぐり</h3><div class="stroll-map-body"><canvas width="760" height="560"></canvas><ul class="stroll-list"></ul></div><p class="stroll-legend"><i class="done"></i>一服した　<i class="seen"></i>見つけた　<span>灰皿のある所で吸えます</span></p><button class="ghost-button stroll-cancel" type="button">閉じる <kbd>M</kbd></button></div></div>
     <div class="stroll-fade" aria-hidden="true"></div>`;
   container.append(root);
+  const travel = createTravel(document.body);
   const $ = (selector) => root.querySelector(selector);
   const prompt = $(".stroll-prompt");
   const promptText = prompt.querySelector("span");
@@ -116,37 +134,71 @@ export function createStroll({ scene, camera, renderer, environment, container, 
 
   /* ---------------- 出入り ---------------- */
 
+  // 地図の本体は、旅に出るときに初めて読み込む
+  async function ensureWorld() {
+    if (!world) {
+      const { createStrollWorld } = await import("./three/stroll/world.js");
+      world ??= createStrollWorld({ scene, camera, renderer, capture: (eye) => environment.capture(eye, { blur: false }) });
+    }
+    return world;
+  }
+
+  // タイトル画面にいる間に、街の素材を静かに取っておく
+  let prefetching = false;
+  async function prefetch() {
+    if (prefetching || active || navigator.connection?.saveData) return;
+    prefetching = true;
+    await ensureWorld();
+    await world.prefetch("town", () => !active);
+  }
+
   async function enter() {
-    world ??= createStrollWorld({ scene, renderer, capture: (eye) => environment.capture(eye, { blur: false }) });
-    await world.prepare();
-    environment.setExternal(world);
-    world.setVisible(true);
-    active = true;
-    mode = "walk";
-    region = null;
+    travel.show({ vehicle: "home", to: "town", title: "ぶらり喫煙の旅" });
+    try {
+      await ensureWorld();
+      const opened = await openRegion("town", world.regions.town.start);
+      if (!opened) return false;
+    } catch (error) {
+      travel.cancel();
+      throw error;
+    }
     root.hidden = false;
     renderStamps();
-    world.walker.place(18, 6, 48.6);
-    yaw = Math.PI;
-    pitch = -0.06;
+    await travel.hide(1400);
+    return true;
+  }
+
+  // 土地を開いて、そこに立つ
+  async function openRegion(id, start) {
+    mode = "sit";
+    active = true;
+    region = null;
+    environment.setExternal(world);
+    world.setVisible(true);
+    const opened = await world.open(id, travel.progress);
+    if (!opened || !active) return false;
+    world.walker.place(...start.at);
+    yaw = start.yaw;
+    pitch = -0.04;
     applyCamera(0);
-    fadeFrom();
+    world.arrive();
+    mode = "walk";
+    return true;
   }
 
   function leave() {
     if (!active) return;
     active = false;
+    travel.cancel();
     closeMenu();
     root.hidden = true;
+    root.classList.remove("is-seated");
+    world.close();
     world.setVisible(false);
     moveTo = null;
     target = null;
   }
 
-  function fadeFrom() {
-    fade.classList.add("is-dark");
-    requestAnimationFrame(() => requestAnimationFrame(() => fade.classList.remove("is-dark")));
-  }
   function fadeThrough(action) {
     mode = "sit";
     fade.classList.add("is-dark");
@@ -231,7 +283,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
       }
     }
     for (const portal of world.portals) consider(portal, "portal", portal.at, portal.label);
-    for (const stop of world.stops) consider(stop, "stop", stop.at, "バスに乗る");
+    for (const stop of world.stops) consider(stop, "stop", stop.at, stop.kind === "train" ? "電車に乗る" : "バスに乗る");
     return best;
   }
 
@@ -253,6 +305,8 @@ export function createStroll({ scene, camera, renderer, environment, container, 
       label.classList.add("is-shown");
     }
     placeLabel = REGION_NAMES[name];
+    const stream = $(".stroll-stream");
+    stream.hidden = world.pending === 0;
   }
 
   /* ---------------- 調べる・メニュー ---------------- */
@@ -268,7 +322,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
         pitch = 0;
         mode = "walk";
       });
-    } else if (kind === "stop") openBus(entry);
+    } else if (kind === "stop") openLines(entry);
     else openTools(entry);
   }
 
@@ -310,40 +364,34 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     });
   }
 
-  function openBus(stop) {
-    const cards = world.stops.filter((entry) => entry.id !== stop.id).map((entry) => ({ id: entry.id, label: entry.name, entry }));
-    // まだ行っていない土地へも、バスで行ける
-    for (const id of ["town", "lake", "port", "inn"]) {
-      if (id !== stop.id && !cards.some((card) => card.id === id)) cards.push({ id, label: REGION_NAMES[id], entry: null });
-    }
-    openMenu("バス停", "どこへ行く？", cards, (card) => {
-      mode = "sit";
-      sfx.bus();
-      fade.classList.add("is-dark");
-      const arrive = () => {
-        if (!active) return;
-        const entry = world.stops.find((item) => item.id === card.id);
-        if (entry) {
-          world.walker.place(...entry.to.at);
-          yaw = entry.to.yaw;
-          pitch = 0;
-        }
-        mode = "walk";
-        setTimeout(() => fade.classList.remove("is-dark"), 250);
-      };
-      Promise.all([world.ensure(card.id), new Promise((resolve) => setTimeout(resolve, 1500))]).then(arrive, () => {
-        toast("バスが来なかった。もう一度試して", "danger");
-        mode = "walk";
-        fade.classList.remove("is-dark");
-      });
-    });
+  // 行き先を選んで、乗る
+  function openLines(stop) {
+    const here = world.region;
+    const cards = LINES_OUT[stop.kind].filter((id) => id !== here).map((id) => ({ id, label: stop.kind === "train" ? STATION[id] : REGION_NAMES[id], note: `${REGION_NAMES[id]}　一服 ${countIn(id)} / ${SPOTS_IN[id]}` }));
+    openMenu(stop.kind === "train" ? "電車" : "バス", "どこへ行く？", cards, (card) => ride(stop.kind, card.id));
   }
 
-  /* ---------------- 地図 ---------------- */
+  async function ride(vehicle, id) {
+    mode = "sit";
+    renderPrompt();
+    sfx.setAmbience(null);
+    sfx[vehicle === "train" ? "train" : "bus"]();
+    travel.show({ vehicle, to: id, title: vehicle === "train" ? `次は　${STATION[id]}` : `次は　${REGION_NAMES[id]}` });
+    const from = world.region;
+    try {
+      const arrival = world.regions[id][vehicle];
+      if (!(await openRegion(id, arrival))) return;
+    } catch (error) {
+      console.error(error);
+      toast("乗り物が止まってしまった。元の場所へ戻ります", "danger");
+      if (!(await openRegion(from, world.regions[from].train ?? world.regions[from].bus ?? world.regions[from].start))) return;
+    }
+    await travel.hide(RIDE_TIME);
+  }
 
-  const MAP = { x: [-240, 236], z: [-232, 72] };
-  const ROADS_ON_MAP = [[-64, 0, 64, 0, 7], [-182, 0, -64, 0, 4], [64, 0, 158, 0, 4], [0, -62, 0, 58, 5], [0, -138, 0, -62, 4], [0, -166, 0, -138, 3], [-60, -34, 38, -34, 3], [-36, 7, -36, 56, 3], [-34, 39, 62, 39, 3], [146, -14, 208, -14, 3], [158, 16, 224, 16, 5]];
-  const AREAS_ON_MAP = [["#3a3550", -66, -62, 132, 122, "都会"], ["#22352c", -206, -26, 56, 52, "湖のキャンプ場"], ["#1f3c58", 124, -30, 40, 60, "風見漁港"], ["#3c4a64", -18, -190, 36, 60, "雪見の宿"]];
+  const countIn = (id) => [...visited].filter((spot) => REGION_OF[spot] === id).length;
+
+  /* ---------------- 地図 ---------------- */
 
   function openMap() {
     if (mode !== "walk") return;
@@ -351,52 +399,70 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     unlockPointer();
     map.hidden = false;
     renderPrompt();
+    map.querySelector("h3").textContent = `${REGION_NAMES[world.region]}の地図`;
     drawMap();
+    // 喫煙所の一覧（まだ見つけていない所は伏せておく）
+    const list = map.querySelector(".stroll-list");
+    list.replaceChildren(
+      ...Object.keys(REGION_NAMES).map((id) => {
+        const item = document.createElement("li");
+        const names = Object.keys(REGION_OF).filter((spot) => REGION_OF[spot] === id);
+        item.innerHTML = `<b>${REGION_NAMES[id]} <small>${countIn(id)} / ${SPOTS_IN[id]}</small></b>`;
+        names.forEach((spot) => {
+          const row = document.createElement("span");
+          row.className = visited.has(spot) ? "done" : seen.has(spot) ? "seen" : "";
+          row.textContent = visited.has(spot) || seen.has(spot) ? SPOT_NAMES[spot] : "？？？";
+          item.append(row);
+        });
+        return item;
+      }),
+    );
   }
 
+  // いまいる土地の地図：歩ける所と、見つけた喫煙所
   function drawMap() {
     const canvas = map.querySelector("canvas");
     const ctx = canvas.getContext("2d");
-    const scale = Math.min(canvas.width / (MAP.x[1] - MAP.x[0]), canvas.height / (MAP.z[1] - MAP.z[0]));
-    const px = (x) => (x - MAP.x[0]) * scale + (canvas.width - (MAP.x[1] - MAP.x[0]) * scale) / 2;
-    const pz = (z) => (z - MAP.z[0]) * scale;
-    ctx.fillStyle = "#101a20";
+    const flat = world.areas.filter((area) => !area.indoor && !(typeof area.y === "number" && area.y > 15));
+    const box = { x0: Math.min(...flat.map((a) => a.x[0])), x1: Math.max(...flat.map((a) => a.x[1])), z0: Math.min(...flat.map((a) => a.z[0])), z1: Math.max(...flat.map((a) => a.z[1])) };
+    const pad = 46;
+    const scale = Math.min((canvas.width - pad * 2) / (box.x1 - box.x0), (canvas.height - pad * 2) / (box.z1 - box.z0));
+    const px = (x) => canvas.width / 2 + (x - (box.x0 + box.x1) / 2) * scale;
+    const pz = (z) => canvas.height / 2 + (z - (box.z0 + box.z1) / 2) * scale;
+    const colors = { town: ["#131620", "#3a3854"], lake: ["#0c1a2c", "#2c3a30"], port: ["#17384e", "#7a7a76"], inn: ["#22304a", "#8fa2c0"] }[world.region];
+    ctx.fillStyle = colors[0];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#12304a";
-    ctx.fillRect(px(163), 0, canvas.width, canvas.height);
-    ctx.fillRect(0, 0, px(-199), canvas.height);
-    ctx.textAlign = "center";
-    for (const [color, x, z, w, h, label] of AREAS_ON_MAP) {
-      ctx.fillStyle = color;
+    for (const area of flat) {
+      ctx.fillStyle = colors[1];
       ctx.beginPath();
-      ctx.roundRect(px(x), pz(z), w * scale, h * scale, 10);
+      ctx.roundRect(px(area.x[0]), pz(area.z[0]), (area.x[1] - area.x[0]) * scale, (area.z[1] - area.z[0]) * scale, 6);
       ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "600 15px sans-serif";
-      ctx.fillText(label, px(x + w / 2), pz(z) - 7);
     }
-    ctx.strokeStyle = "rgba(225,232,238,0.42)";
-    for (const [x0, z0, x1, z1, w] of ROADS_ON_MAP) {
-      ctx.lineWidth = Math.max(2, w * scale * 0.8);
-      ctx.beginPath();
-      ctx.moveTo(px(x0), pz(z0));
-      ctx.lineTo(px(x1), pz(z1));
-      ctx.stroke();
+    // 建物や大きな物
+    ctx.fillStyle = "rgba(10,12,18,0.42)";
+    for (const solid of world.walls()) {
+      ctx.save();
+      ctx.translate(px(solid.x), pz(solid.z));
+      ctx.rotate(-Math.atan2(solid.s, solid.c));
+      ctx.fillRect(-solid.hx * scale, -solid.hz * scale, solid.hx * 2 * scale, solid.hz * 2 * scale);
+      ctx.restore();
     }
+    ctx.textAlign = "center";
+    ctx.font = "600 13px sans-serif";
     for (const stop of world.stops) {
       ctx.fillStyle = "#8fd0ff";
-      ctx.fillRect(px(stop.at[0]) - 4, pz(stop.at[2]) - 4, 8, 8);
+      ctx.fillRect(px(stop.at[0]) - 5, pz(stop.at[2]) - 5, 10, 10);
+      ctx.fillText(stop.kind === "train" ? "駅" : "バス停", px(stop.at[0]), pz(stop.at[2]) - 9);
     }
-    ctx.font = "12px sans-serif";
     for (const spot of world.spots) {
       if (!seen.has(spot.id)) continue;
       const done = visited.has(spot.id);
-      ctx.fillStyle = done ? "#ffb35a" : "rgba(255,255,255,0.85)";
+      ctx.fillStyle = done ? "#ffb35a" : "rgba(255,255,255,0.9)";
       ctx.beginPath();
-      ctx.arc(px(spot.at[0]), pz(spot.at[2]), done ? 7 : 5, 0, 7);
+      ctx.arc(px(spot.at[0]), pz(spot.at[2]), done ? 8 : 6, 0, 7);
       ctx.fill();
-      ctx.fillStyle = "#f4f0e6";
-      ctx.fillText(spot.name, px(spot.at[0]), pz(spot.at[2]) - 11);
+      ctx.fillStyle = "#f6f2e8";
+      ctx.fillText(spot.name, px(spot.at[0]), pz(spot.at[2]) - 12);
     }
     const { x, z } = world.walker.body;
     ctx.save();
@@ -404,10 +470,10 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     ctx.rotate(-yaw);
     ctx.fillStyle = "#c4e49a";
     ctx.beginPath();
-    ctx.moveTo(0, -11);
-    ctx.lineTo(7, 8);
-    ctx.lineTo(0, 4);
-    ctx.lineTo(-7, 8);
+    ctx.moveTo(0, -13);
+    ctx.lineTo(8, 9);
+    ctx.lineTo(0, 5);
+    ctx.lineTo(-8, 9);
     ctx.fill();
     ctx.restore();
   }
@@ -486,6 +552,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
   /* ---------------- 入力・毎フレーム ---------------- */
 
   function onKey(code) {
+    if (travel.active) return true;
     if (!menu.hidden || !map.hidden) {
       if (code === "Escape" || (code === "KeyM" && !map.hidden)) {
         if (!menu.hidden && mode === "menu" && world.stance) return true; // 吸い終わりの選択は、どれかを選ぶ
@@ -504,7 +571,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
   }
 
   function addLook(dx, dy, isTouch) {
-    if (mode !== "walk") return;
+    if (mode !== "walk" || travel.active) return;
     const speed = isTouch ? TOUCH_LOOK : LOOK_SPEED;
     look.x += dx * speed;
     look.y += dy * speed;
@@ -548,6 +615,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
   return {
     enter,
     leave,
+    prefetch,
     update,
     onKey,
     addLook,
@@ -567,6 +635,11 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     get menuOpen() {
       return !menu.hidden || !map.hidden;
     },
+    // 移動（読み込み）中
+    get travelling() {
+      return travel.active;
+    },
+    ride,
     get label() {
       return placeLabel;
     },

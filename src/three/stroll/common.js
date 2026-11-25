@@ -223,7 +223,7 @@ export function platform(kit, name, { length = 16, snow = false, stripe = "#3a8a
   kit.many(new THREE.BoxGeometry(0.24, 0.1, 2.4), kit.solid("#4a4038", { roughness: 1 }), Array.from({ length: 90 }, (_, i) => ({ position: [-35 + i * 0.78, 0.03, -3.2] })));
   train(kit, kit.add(new THREE.Group(), [-9, 0.1, -3.2]), 2, { stripe });
   kit.block([38, 3, 2.8], [0, 1.6, -3.2]);
-  return [0, 0.9, -0.9];
+  return [0, 0.9, 0.6];
 }
 
 // ガードレール

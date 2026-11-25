@@ -1123,6 +1123,7 @@ function renderTitle() {
   // 選んだ場所を先に組み立てておく
   const nextPlace = state.mode === "stroll" ? null : state.mode === "chill" ? state.chillPlace : state.mode === "unlimited" ? unlimitedRound(0).place : DIFFICULTIES[state.difficulty].place;
   if (nextPlace) environment.preload(nextPlace).catch(() => {});
+  if (strollUnlocked()) setTimeout(() => !ui.startScreen.hidden && stroll.prefetch().catch(() => {}), 2500);
   renderStartLabel();
 }
 
@@ -1971,8 +1972,9 @@ async function startStroll() {
   const request = placeRequest;
   ui.startButton.disabled = true;
   ui.startLabel.textContent = "旅の支度をしています…";
+  currentPlace.id = "stroll";
   try {
-    await stroll.enter();
+    if (!(await stroll.enter())) return;
   } catch (error) {
     console.error(error);
     toast("地図を読み込めなかった。もう一度試して", "danger");
@@ -1983,7 +1985,6 @@ async function startStroll() {
     renderStartLabel();
   }
   if (request !== placeRequest) return;
-  currentPlace.id = "stroll";
   ui.startScreen.hidden = true;
   ui.gameLayout.hidden = false;
   resetRun();
@@ -3401,6 +3402,7 @@ function animate() {
     }
   }
 
+  if (state.phase === "stroll" && stroll.travelling) return; // 車窓の画面を出している間は、描かない
   updateWind(delta);
   if (state.phase === "stroll") {
     stroll.update(delta);

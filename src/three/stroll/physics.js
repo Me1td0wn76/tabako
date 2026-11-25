@@ -126,7 +126,14 @@ export function createSolids() {
     return cells.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) ?? query;
   }
 
-  return { addBox, addCircle, collect, near };
+  // 地図に描く、大きな箱
+  function walls() {
+    const found = new Set();
+    for (const list of cells.values()) for (const solid of list) if (solid.hx && solid.hx * solid.hz > 1.2 && solid.y1 - solid.y0 > 1.2 && solid.y0 < 3) found.add(solid);
+    return found;
+  }
+
+  return { addBox, addCircle, collect, near, walls };
 }
 
 // 箱の座標へ
