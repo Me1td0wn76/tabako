@@ -391,7 +391,8 @@ h1 {
 
 /* まったり喫煙：場所を選ぶ */
 .place-picker {
-  width: min(820px, 100%);
+  width: min(1120px, 100%);
+  scroll-margin-bottom: 96px;
 }
 
 .place-picker h2 {
@@ -410,7 +411,7 @@ h1 {
 
 .place-card {
   position: relative;
-  flex: 0 0 128px;
+  flex: 1 0 128px;
   height: 84px;
   overflow: hidden;
   padding: 0;
@@ -447,9 +448,15 @@ h1 {
   box-shadow: 0 0 0 1px var(--amber);
 }
 
+/* 縦に長くなっても、スタートボタンはいつも見える所に置く */
 .start-actions {
+  position: sticky;
+  z-index: 3;
+  bottom: 0;
   display: flex;
   width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(180deg, transparent, rgba(8, 13, 18, 0.9) 40%);
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 12px;

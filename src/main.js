@@ -933,6 +933,7 @@ function selectMode(mode) {
     writeSetting(STORAGE.difficulty, mode);
   }
   renderTitle();
+  if (mode === "chill") ui.placePicker.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function modeCard({ key, level, title, note, limits, place, className = "" }) {
