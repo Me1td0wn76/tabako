@@ -559,7 +559,7 @@ h1 {
 
 .credits-list div {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
   column-gap: 12px;
 }
 
