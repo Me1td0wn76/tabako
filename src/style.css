@@ -2876,7 +2876,7 @@ h2 {
   transform: translate(-50%, -50%);
 }
 
-.stroll-ui.is-seated :is(.stroll-dot, .stroll-prompt, .stroll-buttons, .stroll-place) {
+.stroll-ui.is-seated :is(.stroll-dot, .stroll-prompt, .stroll-buttons, .stroll-place, .stroll-stamps) {
   display: none;
 }
 
@@ -3092,8 +3092,8 @@ h2 {
 
 .monologue {
   position: absolute;
-  z-index: 9;
-  bottom: 25%;
+  z-index: 7;
+  bottom: 30%;
   left: 50%;
   max-width: 86%;
   margin: 0;
@@ -3311,8 +3311,8 @@ h2 {
 
 .stroll-stand {
   position: absolute;
-  top: 104px;
-  right: 18px;
+  top: 60px;
+  left: 18px;
   display: none;
   height: 44px;
   padding: 0 16px;
@@ -3330,7 +3330,8 @@ h2 {
 
 @media (max-height: 520px) and (orientation: landscape) {
   .stroll-stand {
-    top: 92px;
-    right: 12px;
+    top: 48px;
+    left: 12px;
+    height: 38px;
   }
 }

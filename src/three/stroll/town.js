@@ -211,7 +211,7 @@ function home(kit, api) {
     kit.mesh(new THREE.SphereGeometry(0.04, 12, 8), kit.solid("#c8ccd0", { metalness: 0.8, roughness: 0.3 }), [18.34, 6.95, 46.08]);
     // 窓の枠（ベランダ側。左半分は開いている）
     const frame = kit.solid("#8d9296", { metalness: 0.5, roughness: 0.4 });
-    for (const x of [15.5, 18, 20.5]) kit.box([0.08, 2.2, 0.08], [x, 7.1, 50.5], frame).userData.pass = true;
+    for (const x of [15.5, 17.9, 20.5]) kit.box([0.06, 2.2, 0.06], [x, 7.1, 50.5], frame).userData.pass = true;
     kit.box([5.1, 0.5, 0.1], [18, 8.45, 50.5], paint).userData.pass = true;
     const pane = kit.mesh(new THREE.PlaneGeometry(2.4, 2.1), new THREE.MeshStandardMaterial({ color: "#bcd0e0", transparent: true, opacity: 0.16, roughness: 0.05, side: THREE.DoubleSide, depthWrite: false }), [16.75, 7.1, 50.5]);
     pane.userData.pass = true;
@@ -223,8 +223,8 @@ function home(kit, api) {
     kit.put("minifridge", [16.0, 6, 46.5], { yaw: 0, height: 1.5 });
     kit.put("potplant", [20.2, 6, 50.0], { height: 0.6 });
     kit.rbox([1.5, 0.02, 1.2], 0.01, [18.2, 6.015, 48.2], kit.solid("#4a5a6a", { roughness: 1 }));
-    kit.bulb([0.5, 0.08, 0.5], "#fff0d8", 1.1, [18, 8.62, 48.2]);
-    kit.light("#ffe0b4", 2.2, [18, 8.0, 48.0], 7, 1.4);
+    kit.bulb([0.5, 0.08, 0.5], "#fff0d8", 0.7, [17, 8.62, 47.4]);
+    kit.light("#ffe0b4", 2.0, [17.4, 7.6, 47.6], 7, 1.4);
   });
   api.zone(inside, (body) => body.y > 4 && body.z > 40);
   api.area({ x: [15.5, 20.5], z: [46.0, 50.55], y: 6, surface: "wood", indoor: true });
@@ -513,7 +513,7 @@ const unique = (...lists) => [...new Set(lists.flat())];
 export const TOWN = {
   id: "town",
   name: "都会",
-  start: { at: [18, 6, 48.6], yaw: Math.PI }, // 旅の始まりは自分の部屋
+  start: { at: [18.6, 6, 47.6], yaw: Math.PI }, // 旅の始まりは自分の部屋
   train: { name: "風見駅", at: [51, 0.12, -28.6], yaw: Math.PI },
   bus: { name: "風見駅前", at: [47.4, 0.12, -8.4], yaw: 0 },
   parts: [

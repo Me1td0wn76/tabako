@@ -96,7 +96,7 @@ export function balconySet(kit) {
     strip.rotation.y = Math.sin(time * 3.1) * 0.7;
   });
   // 部屋からもれる灯り
-  kit.light("#ffcf98", 2.6, [0.6, 2.2, 0.3], 5, 1.5);
+  kit.light("#ffcf98", 2.4, [0.5, 1.8, 0.6], 5, 1.5);
 }
 
 function city(kit, base, random) {
