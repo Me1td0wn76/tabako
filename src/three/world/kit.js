@@ -105,6 +105,36 @@ const MODEL_URLS = {
   stones: new URL("../../assets/scene/stones.glb", import.meta.url).href,
   bridge: new URL("../../assets/scene/bridge.glb", import.meta.url).href,
   pail: new URL("../../assets/scene/pail.glb", import.meta.url).href,
+  standash: new URL("../../assets/scene/standash.glb", import.meta.url).href,
+  busstop: new URL("../../assets/scene/busstop.glb", import.meta.url).href,
+  bus: new URL("../../assets/scene/bus.glb", import.meta.url).href,
+  chochin: new URL("../../assets/scene/chochin.glb", import.meta.url).href,
+  swing: new URL("../../assets/scene/swing.glb", import.meta.url).href,
+  slide: new URL("../../assets/scene/slide.glb", import.meta.url).href,
+  mailbox: new URL("../../assets/scene/mailbox.glb", import.meta.url).href,
+  phonebooth: new URL("../../assets/scene/phonebooth.glb", import.meta.url).href,
+  yatai: new URL("../../assets/scene/yatai.glb", import.meta.url).href,
+  signal: new URL("../../assets/scene/signal.glb", import.meta.url).href,
+  aboard: new URL("../../assets/scene/aboard.glb", import.meta.url).href,
+  wagasa: new URL("../../assets/scene/wagasa.glb", import.meta.url).href,
+  kotatsu: new URL("../../assets/scene/kotatsu.glb", import.meta.url).href,
+  ikebana: new URL("../../assets/scene/ikebana.glb", import.meta.url).href,
+  bed: new URL("../../assets/scene/bed.glb", import.meta.url).href,
+  desk: new URL("../../assets/scene/desk.glb", import.meta.url).href,
+  bookshelf: new URL("../../assets/scene/bookshelf.glb", import.meta.url).href,
+  minifridge: new URL("../../assets/scene/minifridge.glb", import.meta.url).href,
+  picnic: new URL("../../assets/scene/picnic.glb", import.meta.url).href,
+  rowboat: new URL("../../assets/scene/rowboat.glb", import.meta.url).href,
+  bbq: new URL("../../assets/scene/bbq.glb", import.meta.url).href,
+  cat: new URL("../../assets/scene/cat.glb", import.meta.url).href,
+  clockpole: new URL("../../assets/scene/clockpole.glb", import.meta.url).href,
+  taxi: new URL("../../assets/scene/taxi.glb", import.meta.url).href,
+  npc_suit: new URL("../../assets/scene/npc_suit.glb", import.meta.url).href,
+  npc_shopper: new URL("../../assets/scene/npc_shopper.glb", import.meta.url).href,
+  npc_smoker: new URL("../../assets/scene/npc_smoker.glb", import.meta.url).href,
+  npc_fisher: new URL("../../assets/scene/npc_fisher.glb", import.meta.url).href,
+  npc_okami: new URL("../../assets/scene/npc_okami.glb", import.meta.url).href,
+  npc_camper: new URL("../../assets/scene/npc_camper.glb", import.meta.url).href,
 };
 
 const IMAGE_URLS = {
@@ -126,6 +156,17 @@ const IMAGE_URLS = {
   roofdeck: new URL("../../assets/images/roofdeck.jpg", import.meta.url).href,
   quay: new URL("../../assets/images/quay.jpg", import.meta.url).href,
   brickwall: new URL("../../assets/images/brickwall.jpg", import.meta.url).href,
+  shopa: new URL("../../assets/images/shopa.jpg", import.meta.url).href,
+  shopb: new URL("../../assets/images/shopb.jpg", import.meta.url).href,
+  shopc: new URL("../../assets/images/shopc.jpg", import.meta.url).href,
+  shopd: new URL("../../assets/images/shopd.jpg", import.meta.url).href,
+  shutter: new URL("../../assets/images/shutter.jpg", import.meta.url).href,
+  paving: new URL("../../assets/images/paving.jpg", import.meta.url).href,
+  tatami: new URL("../../assets/images/tatami.jpg", import.meta.url).href,
+  kawara: new URL("../../assets/images/kawara.jpg", import.meta.url).href,
+  grassland: new URL("../../assets/images/grassland.jpg", import.meta.url).href,
+  facade3: new URL("../../assets/images/facade3.jpg", import.meta.url).href,
+  facade4: new URL("../../assets/images/facade4.jpg", import.meta.url).href,
 };
 
 const gltf = new GLTFLoader();
@@ -928,6 +969,9 @@ export async function createKit({ eye = 1.5, models: modelNames, images: imageNa
 
   return {
     group,
+    get here() {
+      return current;
+    },
     solids,
     emitters,
     frame,

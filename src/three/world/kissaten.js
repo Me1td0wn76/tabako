@@ -20,17 +20,19 @@ export async function kissaten() {
 }
 
 // 店の中
-export function kissatenSet(kit) {
+export function kissatenSet(kit, { compact = false } = {}) {
+  const [wide, middle] = compact ? [6.1, 0.575] : [12, 0.4]; // 床と天井の幅・中心
+  const [deep, far] = compact ? [10.8, -3.2] : [16, -4];
   const random = seeded(51);
   const wood = kit.material("wood_dark", { repeat: [3, 1], color: "#b08a6a", roughness: 0.4, bump: 0.5 });
   const dark = kit.material("wood_dark", { repeat: [2, 1], color: "#7a5a42", roughness: 0.5 });
   const trim = kit.solid("#3a2213", { roughness: 0.45 });
   const panelWall = (repeat) => kit.material("panel", { repeat, color: "#c9a686", roughness: 0.5, bump: 0.6 });
   const plaster = kit.material("plaster", { repeat: [4, 1], color: "#c2a070", roughness: 0.95 });
-  kit.ground([12, 16], 0, kit.material("wood_plank", { repeat: [7, 9], color: "#5f412c", roughness: 0.5, bump: 0.6 }), [0.4, -4]);
-  kit.ground([12, 16], 2.65, kit.material("plaster", { repeat: [4, 6], color: "#6f5438" }), [0.4, -4]).rotation.x = Math.PI / 2;
-  for (let i = -3; i <= 3; i += 1) kit.box([0.14, 0.16, 16], [0.4 + i * 1.5, 2.58, -4], dark);
-  for (const z of [-1.8, -4.8]) kit.box([12, 0.2, 0.16], [0.4, 2.56, z], dark);
+  kit.ground([wide, deep], 0, kit.material("wood_plank", { repeat: [wide * 0.58, deep * 0.56], color: "#5f412c", roughness: 0.5, bump: 0.6 }), [middle, far]);
+  kit.ground([wide, deep], 2.65, kit.material("plaster", { repeat: [4, 6], color: "#6f5438" }), [middle, far]).rotation.x = Math.PI / 2;
+  for (let i = -3; i <= 3; i += 1) if (Math.abs(0.4 + i * 1.5 - middle) < wide / 2) kit.box([0.14, 0.16, deep], [0.4 + i * 1.5, 2.58, far], dark);
+  for (const z of [-1.8, -4.8]) kit.box([wide, 0.2, 0.16], [middle, 2.56, z], dark);
 
   /* ---- 壁 ---- */
   const left = -2.35;
@@ -38,7 +40,7 @@ export function kissatenSet(kit) {
   const back = -7.2;
   kit.box([0.1, 2.65, 10], [left - 0.05, 1.32, -3], panelWall([5, 1.3]));
   kit.box([0.1, 2.65, 10], [right + 0.05, 1.32, -3], panelWall([5, 1.3]));
-  kit.box([12, 2.65, 0.1], [0.4, 1.32, back - 1.4], plaster);
+  kit.box([wide, 2.65, 0.1], [middle, 1.32, back - 1.4], plaster);
   for (const x of [left + 0.02, right - 0.02]) {
     kit.box([0.06, 0.09, 10], [x, 0.92, -3], trim);
     kit.box([0.06, 0.16, 10], [x, 0.08, -3], trim);
