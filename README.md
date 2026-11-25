@@ -185,9 +185,10 @@ ComfyUI（`127.0.0.1:8188`）を起動してから、ComfyUI の Python で実�
 
 ```bash
 cd tools/assetgen
-C:/Users/user/ComfyUI/.venv/Scripts/python.exe gen.py photos --only lighter_body
-C:/Users/user/ComfyUI/.venv/Scripts/python.exe gen.py mesh --only lighter_body --faces 8000 --tex 1024
-"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe" -b -P bl_props.py -- C:/Users/user/ComfyUI/output/tabako/glb ../../src/assets/models lighter
+COMFY=~/ComfyUI   # ComfyUI を置いたフォルダー。別の所なら、環境変数 COMFY_DIR にも同じ場所を入れる
+"$COMFY/.venv/Scripts/python.exe" gen.py photos --only lighter_body
+"$COMFY/.venv/Scripts/python.exe" gen.py mesh --only lighter_body --faces 8000 --tex 1024
+"C:/Program Files/Blender Foundation/Blender 4.5/blender.exe" -b -P bl_props.py -- "$COMFY/output/tabako/glb" ../../src/assets/models lighter
 ```
 
 使ったモデル・ライブラリ・フォントとそのライセンスは、タイトルの下の「クレジット」（`index.html`）に書いてあります。新しく何かを使ったら、そこにも書き足してください（three.js などの MIT License は、著作権表示と全文を載せることが条件です）。

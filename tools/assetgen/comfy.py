@@ -18,7 +18,7 @@ import urllib.request
 from PIL import Image
 
 HOST = os.environ.get("COMFY_HOST", "http://127.0.0.1:8188")
-COMFY = os.environ.get("COMFY_DIR", "C:/Users/user/ComfyUI")
+COMFY = os.environ.get("COMFY_DIR") or os.path.expanduser("~/ComfyUI").replace("\\", "/")
 PREFIX = "tabako"
 WORK = os.path.join(COMFY, "output", PREFIX)
 
