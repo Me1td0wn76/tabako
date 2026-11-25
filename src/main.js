@@ -2125,7 +2125,7 @@ function updateEvents(delta) {
 
 function pickEventType() {
   const entries = Object.entries(EVENTS).filter(
-    ([type]) => type !== state.lastEventType && EVENT_PHASES[type].includes(state.phase),
+    ([type]) => type !== state.lastEventType && EVENT_PHASES[type].includes(state.phase) && (strangers.salaryman || (type !== "moocher" && type !== "lender")),
   );
   if (entries.length === 0) return null;
   const total = entries.reduce((sum, [, def]) => sum + def.weight, 0);
