@@ -19,15 +19,49 @@ function cooling(kit, position, yaw) {
   for (const x of [-0.75, 0.75]) kit.box([0.14, 0.16, 1.2], [x, 0.08, 0], dark, undefined, holder);
 }
 
+export const ROOFTOP = {
+  eye: 1.15,
+  models: ["tank", "ac", "duct", "crates", "redcan", "bench", "dish", "pipechair", "fan", "stool", "bluebucket", "potplant", "cone"],
+  images: ["roofdeck", "brickwall", "concrete", "wood_plank"],
+  spot: { y: 0.75, item: [-0.2, -1.26], phone: [0.34, -1.28], tray: [0.1, -1.38], chillTray: [-0.05, -1.28] },
+};
+
 export async function rooftop() {
-  const kit = await createKit({
-    eye: 1.15,
-    models: ["tank", "ac", "duct", "crates", "redcan", "bench", "dish", "pipechair", "fan", "stool", "bluebucket", "potplant", "cone"],
-    images: ["roofdeck", "brickwall", "concrete", "facade", "facade2", "asphalt", "wood_plank"],
-  });
-  const random = seeded(31);
+  const kit = await createKit({ eye: ROOFTOP.eye, models: ROOFTOP.models, images: [...ROOFTOP.images, "facade", "facade2", "asphalt"] });
   const base = -34;
   kit.sky({ top: "#0a1230", horizon: "#5a88c8", below: "#0c1220", glow: "#2c4a74", clouds: 0.95, cloudColor: "#16233e", cloudSpeed: 0.03, height: 0.42 });
+  /* ---- 周りの街 ---- */
+  kit.ground([900, 700], base, kit.material("asphalt", { repeat: [60, 46], color: "#23262e" }), [0, -290]);
+  kit.towers({ count: 10, kinds: 3, area: { x: [-50, -26], z: [-74, -34] }, base, height: [22, 37], width: [12, 18], image: "facade", seed: 61, glow: 1.2, gain: 1.7 });
+  kit.towers({ count: 10, kinds: 3, area: { x: [24, 52], z: [-78, -34] }, base, height: [24, 46], width: [12, 18], image: "facade", seed: 67, glow: 1.2, gain: 1.7 });
+  kit.towers({ count: 40, area: { x: [-150, 150], z: [-140, -62] }, base, height: [20, 38], width: [14, 24], image: "facade", seed: 43, glow: 1.2, gain: 1.6 });
+  kit.towers({ count: 60, area: { x: [-260, 260], z: [-270, -135] }, base, height: [26, 66], width: [16, 30], image: "facade2", seed: 41, glow: 1.2, gain: 1.3 });
+  kit.towers({ count: 90, area: { x: [-340, 340], z: [-400, -250] }, base, height: [28, 96], width: [18, 34], image: "facade2", seed: 47, glow: 1.1, gain: 1.3 });
+  // 屋上の看板（光る板。文字なし）
+  for (const [x, y, z, w, h, color] of [[-30, 8, -60, 12, 4, "#d8463a"], [34, 12, -84, 14, 5, "#3a8fd8"], [8, 4, -118, 16, 5, "#e0b23a"]]) {
+    kit.box([w + 0.6, h + 0.6, 0.5], [x, y, z - 0.4], kit.solid("#1a1d22"));
+    kit.panel(w, h, [x, y, z], undefined, (ctx, cw, ch) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.fillStyle = "#fff4dc";
+      ctx.beginPath();
+      ctx.arc(cw * 0.2, ch / 2, ch * 0.3, 0, 7);
+      ctx.fill();
+      ctx.fillRect(cw * 0.36, ch * 0.3, cw * 0.5, ch * 0.16);
+      ctx.fillRect(cw * 0.36, ch * 0.58, cw * 0.36, ch * 0.1);
+    }, { glow: 1.1 });
+  }
+  const red = kit.dots([[-34, 22, -100], [38, 26, -112], [6, 48, -198], [-92, 44, -188], [96, 56, -228], [-150, 70, -308], [60, 78, -328]], "#ff3226", 2.4);
+  kit.onUpdate((delta, time) => {
+    red.material.opacity = 0.35 + 0.65 * Math.max(0, Math.sin(time * 1.9)) ** 2;
+  });
+  rooftopSet(kit);
+  return kit.finish(ROOFTOP.spot);
+}
+
+// 屋上の床・机・機械・塔屋
+export function rooftopSet(kit) {
+  const random = seeded(31);
   kit.ground([30, 24], 0, wet(kit.material("roofdeck", { repeat: [8, 6], color: "#8b9098", roughness: 0.8, bump: 0.8 }), { scale: 0.55, amount: 0.42, dark: 0.4 }), [0, -8]);
 
   /* ---- 机と、座っている所 ---- */
@@ -122,31 +156,4 @@ export async function rooftop() {
   for (let i = 0; i < 9; i += 1) kit.box([0.22, 0.08, 0.14], [-4.35 + i * 0.02, 0.04, -5.4 - i * 1.15], cap);
   kit.put("cone", [5.6, 0, -6.2], { height: 0.6 });
   kit.pebbles({ count: 160, x: [-6, 8], z: [-14, -2.2], size: [0.008, 0.025], color: ["#3a3d42", "#6a6d72"], seed: 5 });
-
-  /* ---- 周りの街 ---- */
-  kit.ground([900, 700], base, kit.material("asphalt", { repeat: [60, 46], color: "#23262e" }), [0, -290]);
-  kit.towers({ count: 10, kinds: 3, area: { x: [-50, -26], z: [-74, -34] }, base, height: [22, 37], width: [12, 18], image: "facade", seed: 61, glow: 1.2, gain: 1.7 });
-  kit.towers({ count: 10, kinds: 3, area: { x: [24, 52], z: [-78, -34] }, base, height: [24, 46], width: [12, 18], image: "facade", seed: 67, glow: 1.2, gain: 1.7 });
-  kit.towers({ count: 40, area: { x: [-150, 150], z: [-140, -62] }, base, height: [20, 38], width: [14, 24], image: "facade", seed: 43, glow: 1.2, gain: 1.6 });
-  kit.towers({ count: 60, area: { x: [-260, 260], z: [-270, -135] }, base, height: [26, 66], width: [16, 30], image: "facade2", seed: 41, glow: 1.2, gain: 1.3 });
-  kit.towers({ count: 90, area: { x: [-340, 340], z: [-400, -250] }, base, height: [28, 96], width: [18, 34], image: "facade2", seed: 47, glow: 1.1, gain: 1.3 });
-  // 屋上の看板（光る板。文字なし）
-  for (const [x, y, z, w, h, color] of [[-30, 8, -60, 12, 4, "#d8463a"], [34, 12, -84, 14, 5, "#3a8fd8"], [8, 4, -118, 16, 5, "#e0b23a"]]) {
-    kit.box([w + 0.6, h + 0.6, 0.5], [x, y, z - 0.4], kit.solid("#1a1d22"));
-    kit.panel(w, h, [x, y, z], undefined, (ctx, cw, ch) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(0, 0, cw, ch);
-      ctx.fillStyle = "#fff4dc";
-      ctx.beginPath();
-      ctx.arc(cw * 0.2, ch / 2, ch * 0.3, 0, 7);
-      ctx.fill();
-      ctx.fillRect(cw * 0.36, ch * 0.3, cw * 0.5, ch * 0.16);
-      ctx.fillRect(cw * 0.36, ch * 0.58, cw * 0.36, ch * 0.1);
-    }, { glow: 1.1 });
-  }
-  const red = kit.dots([[-34, 22, -100], [38, 26, -112], [6, 48, -198], [-92, 44, -188], [96, 56, -228], [-150, 70, -308], [60, 78, -328]], "#ff3226", 2.4);
-  kit.onUpdate((delta, time) => {
-    red.material.opacity = 0.35 + 0.65 * Math.max(0, Math.sin(time * 1.9)) ** 2;
-  });
-  return kit.finish({ y: 0.75, item: [-0.2, -1.26], phone: [0.34, -1.28], tray: [0.1, -1.38], chillTray: [-0.05, -1.28] });
 }

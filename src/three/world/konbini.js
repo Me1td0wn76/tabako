@@ -6,16 +6,35 @@ import { can, cottages, powerPole, streetLamp } from "./parts.js";
  * コンビニ前（夜の駐車場）。店先のスタンド灰皿を囲んで、立って吸う。
  */
 
+export const KONBINI = {
+  eye: 1.55,
+  models: ["vending", "car", "bins", "tree", "bush", "bicycle", "scooter", "cone", "rack", "icebox", "crates", "potplant", "truck"],
+  images: ["asphalt", "concrete", "goods", "fridge", "steel", "brickwall"],
+  spot: { y: 1.15, item: [-0.2, -1.2], phone: [0.3, -1.3], tray: [0.04, -1.42], chillTray: [-0.04, -1.3] },
+};
+
 export async function konbini() {
-  const kit = await createKit({
-    eye: 1.55,
-    models: ["vending", "car", "bins", "house", "mixed", "tree", "bush", "bicycle", "scooter", "cone", "rack", "icebox", "crates", "potplant", "truck"],
-    images: ["asphalt", "concrete", "goods", "fridge", "steel", "brickwall"],
-  });
+  const kit = await createKit({ eye: KONBINI.eye, models: [...KONBINI.models, "house", "mixed"], images: KONBINI.images });
   const random = seeded(9);
   kit.sky({ top: "#05070e", horizon: "#141a2a", below: "#0a0c12", glow: "#2a2018", stars: 0.35, clouds: 0.35, cloudColor: "#10141f" });
   kit.ground([140, 120], 0, wet(kit.material("asphalt", { repeat: [20, 17], color: "#b4b6ba", roughness: 0.75, bump: 1.2 }), { scale: 0.45, amount: 0.5, dark: 0.45 }), [0, -40]);
 
+  /* ---- まわりの家・電柱・街灯 ---- */
+  const houses = [];
+  for (let i = 0; i < 9; i += 1) houses.push({ position: [-34 + i * 9 + random() * 2, 0, -25 - random() * 4], yaw: random() < 0.5 ? 0 : Math.PI / 2, scale: 0.95 + random() * 0.2 });
+  for (const z of [-4, -13, -22]) houses.push({ position: [-27, 0, z], yaw: Math.PI / 2, scale: 1.0 });
+  kit.scatter("house", houses, { glow: 1.5, threshold: 0.74, tint: "#ffd9a0" });
+  cottages(kit, Array.from({ length: 24 }, (_, i) => ({ position: [-70 + i * 6 + random() * 3, 0, -42 - random() * 20], yaw: Math.floor(random() * 4) * (Math.PI / 2), scale: 1 + random() * 0.3 })), { walls: ["#34363e", "#2c2e36", "#403c3e"], roofs: ["#15171c", "#1c1a1c"], lit: 0.5, power: 1.0 });
+  kit.scatter("mixed", [{ position: [-30, 0, -62], scale: 1.1 }, { position: [12, 0, -66], yaw: 1.6, scale: 1.3 }, { position: [34, 0, -56], yaw: 0.4 }], { glow: 1.1, threshold: 0.62, tint: "#ffd9a0" });
+  const poles = [powerPole(kit, -22, -9, 10), powerPole(kit, -15.5, -18.8, 10), powerPole(kit, -2.5, -19.6, 10.5), powerPole(kit, 12, -20, 10)];
+  kit.wires(poles, 5);
+  kit.wires([poles[2], [4.5, 4.1, -13]], 2, { spread: 0.15 });  konbiniSet(kit);
+  return kit.finish(KONBINI.spot);
+}
+
+// スタンド灰皿・店・駐車場
+export function konbiniSet(kit) {
+  const random = seeded(9);
   /* ---- スタンド灰皿（吸う所） ---- */
   const steel = kit.material("steel", { repeat: [1, 1], color: "#d4d8dc", roughness: 0.36, metalness: 0.45, envMapIntensity: 1.2 });
   const dark = kit.solid("#24272b", { metalness: 0.5, roughness: 0.5 });
@@ -101,30 +120,18 @@ export async function konbini() {
   kit.scatter("bush", Array.from({ length: 14 }, (_, i) => ({ position: [-3 + i * 1.0, 0, -18.4], yaw: random() * 6, height: 1.1 + random() * 0.3 })), { color: "#8ea38c" });
   kit.scatter("tree", [[-19, -19], [-12, -20], [1.5, -20], [-20, -6], [13, -22], [20, -17]].map(([x, z]) => ({ position: [x, 0, z], yaw: random() * 6, height: 4.8 + random() * 2 })), { color: "#7f8f7c" });
 
-  /* ---- まわりの家・電柱・街灯 ---- */
-  const houses = [];
-  for (let i = 0; i < 9; i += 1) houses.push({ position: [-34 + i * 9 + random() * 2, 0, -25 - random() * 4], yaw: random() < 0.5 ? 0 : Math.PI / 2, scale: 0.95 + random() * 0.2 });
-  for (const z of [-4, -13, -22]) houses.push({ position: [-27, 0, z], yaw: Math.PI / 2, scale: 1.0 });
-  kit.scatter("house", houses, { glow: 1.5, threshold: 0.74, tint: "#ffd9a0" });
-  cottages(kit, Array.from({ length: 24 }, (_, i) => ({ position: [-70 + i * 6 + random() * 3, 0, -42 - random() * 20], yaw: Math.floor(random() * 4) * (Math.PI / 2), scale: 1 + random() * 0.3 })), { walls: ["#34363e", "#2c2e36", "#403c3e"], roofs: ["#15171c", "#1c1a1c"], lit: 0.5, power: 1.0 });
-  kit.scatter("mixed", [{ position: [-30, 0, -62], scale: 1.1 }, { position: [12, 0, -66], yaw: 1.6, scale: 1.3 }, { position: [34, 0, -56], yaw: 0.4 }], { glow: 1.1, threshold: 0.62, tint: "#ffd9a0" });
-  const poles = [powerPole(kit, -22, -9, 10), powerPole(kit, -15.5, -18.8, 10), powerPole(kit, -2.5, -19.6, 10.5), powerPole(kit, 12, -20, 10)];
-  kit.wires(poles, 5);
-  kit.wires([poles[2], [4.5, 4.1, -13]], 2, { spread: 0.15 });
   streetLamp(kit, -11.6, -17.2, { height: 5.4, power: 22, reach: 14, color: "#ffe0b0" });
   streetLamp(kit, 1.4, -17.4, { height: 5.4, power: 14, reach: 11, color: "#ffe0b0" });
   // マンホールと湯気、道ばたの空き缶
   kit.cylinder(0.34, 0.34, 0.012, [-4.2, 0.007, -8.6], kit.solid("#3a3c3e", { metalness: 0.6, roughness: 0.6 }), undefined, undefined, 32);
   kit.steam({ at: [-4.2, 0.1, -8.6], spread: [0.4, 0.4], count: 12, size: 0.4, grow: 1.9, rise: 3.2, opacity: 0.07, speed: 0.14, color: "#9aa4b8" });
-
-  return kit.finish({ y: 1.15, item: [-0.2, -1.2], phone: [0.3, -1.3], tray: [0.04, -1.42], chillTray: [-0.04, -1.3] });
 }
 
 // 店：ガラス越しに棚と商品が見える（看板は無地）
 function buildStore(kit) {
   const random = seeded(21);
   const shop = new THREE.Group();
-  kit.group.add(shop);
+  kit.add(shop);
   const put = (geometry, material, position, rotation) => kit.mesh(geometry, material, position, rotation, shop);
   const block = (size, material, position, rotation) => put(new THREE.BoxGeometry(...size), material, position, rotation);
   const { solid, lit } = kit;

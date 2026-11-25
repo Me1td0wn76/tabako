@@ -6,35 +6,48 @@ import { TAU, forest, ridges, stringLights, trunk } from "./parts.js";
  * キャンプ場（湖と焚き火）。焚き火の前の低い椅子に座り、折りたたみの小さな机で吸う。
  */
 
+export const CAMP = {
+  eye: 1.0,
+  models: ["tent", "logs", "conifer", "campchair", "lantern", "rock", "firewood", "cooler", "kettle", "mug", "logseat", "camptable", "stump", "backpack", "fern", "canoe", "tripod", "sandals"],
+  images: ["forest", "bark", "wood_plank"],
+  spot: { y: 0.6, item: [-0.03, -1.2], phone: [0.5, -1.22], tray: [0.22, -1.4], chillTray: [0.02, -1.28] },
+};
+
+// 地面の高さ：焚き火のまわりは平ら、湖へ向けて少し下がる
+export function campGround(x, z) {
+  const shore = -13.5 + Math.sin(x * 0.35) * 0.8 + Math.sin(x * 0.11 + 2) * 1.6;
+  let y = Math.sin(x * 0.9 + z * 0.4) * 0.03 + Math.sin(x * 0.37 - z * 0.8) * 0.05;
+  y *= Math.min(1, Math.hypot(x, z + 2.5) / 5);
+  y += Math.max(0, Math.abs(x) - 7) * 0.1;
+  if (z < shore) y -= (shore - z) * 0.22;
+  return y;
+}
+
 export async function camp() {
-  const kit = await createKit({
-    eye: 1.0,
-    models: ["tent", "logs", "conifer", "campchair", "lantern", "rock", "firewood", "cooler", "kettle", "mug", "logseat", "camptable", "stump", "backpack", "fern", "canoe", "tripod", "sandals"],
-    images: ["forest", "bark", "wood_plank"],
-  });
-  const random = seeded(17);
+  const kit = await createKit({ eye: CAMP.eye, models: CAMP.models, images: CAMP.images });
   kit.sky({ top: "#040818", horizon: "#1a2c52", below: "#0a1020", glow: "#142238", stars: 1.2, milky: 1.2, clouds: 0, cloudColor: "#18233c", height: 0.5 });
 
-  // 地面：焚き火のまわりは平ら、湖へ向けて少し下がる
   const soil = kit.material("forest", { repeat: [26, 14], color: "#9a9086", bump: 2 });
   const land = new THREE.PlaneGeometry(90, 40, 120, 60);
   land.rotateX(-Math.PI / 2);
+  land.translate(0, 0, -10);
   const position = land.attributes.position;
-  for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const z = position.getZ(i) - 10;
-    const shore = -13.5 + Math.sin(x * 0.35) * 0.8 + Math.sin(x * 0.11 + 2) * 1.6;
-    let y = Math.sin(x * 0.9 + z * 0.4) * 0.03 + Math.sin(x * 0.37 - z * 0.8) * 0.05;
-    y *= Math.min(1, Math.hypot(x, z + 2.5) / 5);
-    y += Math.max(0, Math.abs(x) - 7) * 0.1;
-    if (z < shore) y -= (shore - z) * 0.22;
-    position.setXYZ(i, x, y, z);
-  }
+  for (let i = 0; i < position.count; i += 1) position.setY(i, campGround(position.getX(i), position.getZ(i)));
   land.computeVertexNormals();
   kit.mesh(land, soil).userData.noCast = true;
   kit.water({ size: [260, 150], y: -0.42, position: [0, -88], deep: "#071022", shallow: "#34568f", sparkle: "#9fb6e0", glitter: 0.14, scale: 0.6, lights: [[[-0.9, 0.9, -3.1], "#ff8a3a"], [[2.6, 1.2, -5.2], "#ffb868"]] });
   ridges(kit, [{ z: -230, color: "#1b2a4a", height: 46, seed: 3 }, { z: -200, color: "#121f38", height: 28, seed: 8 }]);
 
+  forest(kit, { count: 320, x: [-220, 220], z: [-190, -164], y: -0.6, height: [9, 20], color: "#0f1a22", seed: 3 });
+  forest(kit, { count: 130, x: [-70, -16], z: [-40, -2], y: 0, height: [9, 16], color: "#0f1a1c", seed: 5 });
+  forest(kit, { count: 130, x: [16, 70], z: [-40, -2], y: 0, height: [9, 16], color: "#0f1a1c", seed: 6 });
+  campSet(kit);
+  return kit.finish(CAMP.spot);
+}
+
+// 焚き火・机・テント・木
+export function campSet(kit) {
+  const random = seeded(17);
   /* ---- 手前の机（吸う所） ---- */
   kit.put("camptable", [0.34, 0, -1.32], { height: 0.6, yaw: -0.03 });
   kit.put("mug", [-0.04, 0.6, -1.54], { height: 0.095, yaw: 0.6 });
@@ -107,14 +120,9 @@ export async function camp() {
     trees.push({ position: [side * (7.5 + random() * 15), 0.5, -4 - random() * 15], yaw: random() * TAU, scale: 0.8 + random() * 0.7 });
   }
   kit.scatter("conifer", trees, { color: "#39463a" });
-  forest(kit, { count: 320, x: [-220, 220], z: [-190, -164], y: -0.6, height: [9, 20], color: "#0f1a22", seed: 3 });
-  forest(kit, { count: 130, x: [-70, -16], z: [-40, -2], y: 0, height: [9, 16], color: "#0f1a1c", seed: 5 });
-  forest(kit, { count: 130, x: [16, 70], z: [-40, -2], y: 0, height: [9, 16], color: "#0f1a1c", seed: 6 });
   const clear = (x, z) => Math.hypot(x + 0.86, z + 2.75) < 1.3 || (Math.abs(x - 3.1) < 1.4 && Math.abs(z + 5.4) < 1.3) || z < -13;
   kit.grass({ count: 1500, x: [-10, 10], z: [-13, -1.8], height: [0.08, 0.26], color: ["#333f22", "#5c6638"], seed: 4, avoid: (x, z) => clear(x, z) || (Math.abs(x) < 3.4 && z > -6 && Math.sin(x * 5 + z * 3) > -0.2) });
   kit.pebbles({ count: 420, x: [-6, 6], z: [-13, -1.6], size: [0.012, 0.06], color: ["#4a443c", "#7d766a"], seed: 8 });
   kit.scatter("fern", [[-4.6, -3.3], [-3.4, -5.6], [-5.0, -5.6], [4.9, -5.9], [4.2, -3.9], [5.6, -3.4], [-6.2, -4.0], [2.2, -8.2], [4.2, -8.8], [-2.6, -8.4], [-6.0, -8.6]].map(([x, z]) => ({ position: [x, -0.02, z], yaw: random() * TAU, height: 0.4 + random() * 0.3 })), { color: "#9ab08a" });
   kit.scatter("rock", [[-2.4, -7.2, 0.5], [5.4, -10.4, 0.9], [-1.0, -11.6, 0.4], [0.6, -12.6, 0.5], [4.4, -12.8, 0.7], [-5.8, -11.4, 0.8], [6.6, -6.8, 0.6]].map(([x, z, height]) => ({ position: [x, -0.1, z], yaw: random() * TAU, height })), { color: "#7d7d80" });
-
-  return kit.finish({ y: 0.6, item: [-0.03, -1.2], phone: [0.5, -1.22], tray: [0.22, -1.4], chillTray: [0.02, -1.28] });
 }

@@ -6,16 +6,53 @@ import { TAU, forest, ridges } from "./parts.js";
  * 温泉宿の縁側（雪の庭）。縁側に腰を下ろし、お膳の灰皿で吸う。
  */
 
-export async function engawa() {
-  const kit = await createKit({
-    eye: 0.8,
-    models: ["toro", "pine", "rock", "bamboo", "conifer", "teaset", "zabuton", "andon", "hibachi", "geta", "shishi", "snowbush", "stones", "bridge", "pail"],
-    images: ["snow", "wood_dark"],
-  });
-  const random = seeded(29);
-  const yard = -0.5; // 庭の地面（縁側の床が 0）
-  kit.sky({ top: "#0b1430", horizon: "#31548c", below: "#1a2438", glow: "#22365a", clouds: 0.8, cloudColor: "#2a3a58", cloudSpeed: 0.006 });
+export const ENGAWA = {
+  eye: 0.8,
+  models: ["toro", "pine", "rock", "bamboo", "conifer", "teaset", "zabuton", "andon", "hibachi", "geta", "shishi", "snowbush", "stones", "bridge", "pail"],
+  images: ["snow", "wood_dark"],
+  spot: { y: 0.4, item: [-0.22, -1.2], phone: [0.3, -1.2], tray: [-0.02, -1.42], chillTray: [-0.06, -1.28] },
+};
 
+const yard = -0.5; // 庭の地面（縁側の床が 0）
+
+// 池の深さ（0 より大きい所が池）
+export function pondDepth(x, z) {
+  const dx = (x - 0.6) / 3.3;
+  const dz = (z + 6.6) / 2.0;
+  const bend = Math.sin(Math.atan2(dz, dx) * 3) * 0.12;
+  return 1 + bend - Math.hypot(dx, dz);
+}
+
+// 庭の高さ
+export function gardenGround(x, z) {
+  let y = Math.sin(x * 0.8 + z * 0.5) * 0.06 + Math.sin(x * 0.33 - z * 0.9) * 0.08;
+  y += Math.max(0, -z - 11) * 0.11 + Math.max(0, Math.abs(x) - 6) * 0.09;
+  const pond = pondDepth(x, z);
+  if (pond > -0.12) y = Math.min(y, 0.06) - Math.max(0, pond + 0.12) * 0.9;
+  if (z > -3.4) y = Math.min(y, 0.0);
+  return yard + y;
+}
+
+export async function engawa() {
+  const kit = await createKit({ eye: ENGAWA.eye, models: ENGAWA.models, images: ENGAWA.images });
+  kit.sky({ top: "#0b1430", horizon: "#31548c", below: "#1a2438", glow: "#22365a", clouds: 0.8, cloudColor: "#2a3a58", cloudSpeed: 0.006 });
+  const snow = kit.material("snow", { repeat: [14, 11], color: "#c3d1e8", roughness: 0.95, bump: 2.2 });
+  const land = new THREE.PlaneGeometry(90, 60, 150, 100);
+  land.rotateX(-Math.PI / 2);
+  land.translate(0, 0, -24);
+  const position = land.attributes.position;
+  for (let i = 0; i < position.count; i += 1) position.setY(i, gardenGround(position.getX(i), position.getZ(i)));
+  land.computeVertexNormals();
+  kit.mesh(land, snow).userData.noCast = true;
+  forest(kit, { count: 240, x: [-70, 70], z: [-54, -26], y: yard + 1, height: [7, 15], color: "#2a3a52", seed: 9, snow: "#7f93b4" });
+  ridges(kit, [{ z: -120, color: "#22344f", height: 34, seed: 4 }]);
+  engawaSet(kit);
+  return kit.finish(ENGAWA.spot);
+}
+
+// 縁側・お膳・庭
+export function engawaSet(kit) {
+  const random = seeded(29);
   /* ---- 縁側 ---- */
   const board = kit.material("wood_dark", { repeat: [3, 0.12], color: "#9a7858", roughness: 0.38, bump: 0.6 });
   for (let i = 0; i < 9; i += 1) kit.box([12, 0.05, 0.232], [0, -0.025, 0.2 - i * 0.24 + 0.0], board).position.x = (i % 2) * 0.4;
@@ -73,28 +110,6 @@ export async function engawa() {
   kit.put("pail", [1.55, 0, -1.3], { height: 0.22 });
 
   /* ---- 庭：地面・沓脱石・飛び石 ---- */
-  const snow = kit.material("snow", { repeat: [14, 11], color: "#c3d1e8", roughness: 0.95, bump: 2.2 });
-  const land = new THREE.PlaneGeometry(90, 60, 150, 100);
-  land.rotateX(-Math.PI / 2);
-  const position = land.attributes.position;
-  const pondDepth = (x, z) => {
-    const dx = (x - 0.6) / 3.3;
-    const dz = (z + 6.6) / 2.0;
-    const bend = Math.sin(Math.atan2(dz, dx) * 3) * 0.12;
-    return 1 + bend - Math.hypot(dx, dz);
-  };
-  for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const z = position.getZ(i) - 24;
-    let y = Math.sin(x * 0.8 + z * 0.5) * 0.06 + Math.sin(x * 0.33 - z * 0.9) * 0.08;
-    y += Math.max(0, -z - 11) * 0.11 + Math.max(0, Math.abs(x) - 6) * 0.09;
-    const pond = pondDepth(x, z);
-    if (pond > -0.12) y = Math.min(y, 0.06) - Math.max(0, pond + 0.12) * 0.9;
-    if (z > -3.4) y = Math.min(y, 0.0);
-    position.setXYZ(i, x, yard + y, z);
-  }
-  land.computeVertexNormals();
-  kit.mesh(land, snow).userData.noCast = true;
   kit.rbox([1.5, 0.24, 0.62], 0.05, [0.1, yard + 0.12, -2.55], kit.solid("#5a5f66", { roughness: 0.9 }));
   kit.put("geta", [0.12, yard + 0.24, -2.5], { height: 0.09, yaw: 3.3 });
   kit.put("geta", [0.46, yard + 0.24, -2.55], { height: 0.09, yaw: 2.9 });
@@ -127,9 +142,6 @@ export async function engawa() {
   kit.scatter("snowbush", bushes.map(([x, z, height]) => ({ position: [x, yard - 0.04 + Math.max(0, -z - 11) * 0.11, z], height, yaw: random() * TAU })));
   kit.scatter("bamboo", Array.from({ length: some(16) }, (_, i) => ({ position: [1.4 + (i % 8) * 1.0 + random() * 0.6, yard + 0.2, -12.2 - Math.floor(i / 8) * 1.4 - random()], yaw: random() * TAU, scale: 1.0 + random() * 0.5 })), { color: "#f0fff0" });
   kit.scatter("conifer", Array.from({ length: some(14) }, () => ({ position: [-22 + random() * 44, yard + 0.8, -18 - random() * 7], yaw: random() * TAU, scale: 0.8 + random() * 0.4 })), { color: "#8fa2b8" });
-  forest(kit, { count: 240, x: [-70, 70], z: [-54, -26], y: yard + 1, height: [7, 15], color: "#2a3a52", seed: 9, snow: "#7f93b4" });
-  ridges(kit, [{ z: -120, color: "#22344f", height: 34, seed: 4 }]);
-
   /* ---- 竹垣 ---- */
   const bamboo = kit.solid("#a08a58", { roughness: 0.6 });
   kit.many(new THREE.CylinderGeometry(0.035, 0.035, 1.5, 8), bamboo, Array.from({ length: 64 }, (_, i) => ({ position: [-8.6 + i * 0.12, yard + 0.75 + (random() - 0.5) * 0.05, -11.6], rotation: [0, random() * 6, (random() - 0.5) * 0.03], color: new THREE.Color("#b09a66").offsetHSL(0, 0, (random() - 0.5) * 0.1) })));
@@ -142,6 +154,4 @@ export async function engawa() {
     kit.light("#ffb060", 0.5, [x, yard + 0.35, z + 0.15], 2.2, 1.7);
   }
   kit.particles({ count: 620, area: { x: [-9, 9], y: [yard, 5], z: [-14, -2.3] }, color: "#eef4ff", size: 0.02, fall: 0.5, sway: 0.25 });
-
-  return kit.finish({ y: 0.4, item: [-0.22, -1.2], phone: [0.3, -1.2], tray: [-0.02, -1.42], chillTray: [-0.06, -1.28] });
 }

@@ -60,7 +60,7 @@ for name, source, strength in (
 # 3D の場所の質感
 for name, source in (("asphalt", "asphalt_601"), ("forest", "forest_603"), ("plaster", "plaster_606"), ("snow", "snow_608")):
     save(flatten(load(source)).resize((768, 768), Image.LANCZOS), f"{name}.jpg", 80)
-for name, source, gain in (("bark", "bark_621", 2.0), ("panel", "panel_622", 1.0), ("roofdeck", "roofdeck_631", 1.0), ("quay", "quay_633", 1.0), ("brickwall", "brickwall_634", 1.0)):
+for name, source, gain in (("bark", "bark_621", 2.0), ("panel", "panel_622", 1.0), ("roofdeck", "roofdeck_631", 1.0), ("quay", "quay_633", 1.0), ("brickwall", "brickwall_634", 1.0), ("paving", "paving_651", 1.0), ("kawara", "kawara_654", 1.0), ("grassland", "grassland_656", 0.8)):
     save(flatten(load(source)).resize((768, 768), Image.LANCZOS).point(lambda v: min(255, int(v * gain))), f"{name}.jpg", 80)
 for name, source in (("facade", "facade_610"), ("facade2", "facade2_612")):
     save(load(source).resize((768, 768), Image.LANCZOS), f"{name}.jpg", 82)
@@ -69,6 +69,15 @@ for name, source, (l, t, r, b), size in (
     ("goods", "goods_627", (0.0, 0.09, 1.0, 0.93), (768, 640)),
     ("fridge", "fridge_628", (0.05, 0.15, 0.96, 0.85), (768, 590)),
     ("stained", "stained_624", (0.06, 0.04, 0.94, 0.96), (480, 660)),
+    # 街歩き：店先・建物
+    ("shopa", "shopa_641", (0.06, 0.16, 0.94, 0.9), (768, 512)),
+    ("shopb", "shopb_643", (0.06, 0.16, 0.94, 0.9), (768, 512)),
+    ("shopc", "shopc_645", (0.05, 0.16, 0.95, 0.96), (768, 512)),
+    ("shopd", "shopd_646", (0.08, 0.1, 0.94, 0.9), (768, 512)),
+    ("shutter", "shutter_649", (0.06, 0.06, 0.94, 0.96), (768, 512)),
+    ("facade3", "facade3_659", (0.05, 0.03, 0.93, 0.97), (768, 768)),
+    ("facade4", "facade4_661", (0.02, 0.02, 0.98, 0.98), (768, 768)),
+    ("tatami", "tatami_652", (0.04, 0.04, 0.96, 0.96), (512, 512)),
 ):
     im = load(source)
     save(im.crop((int(im.width * l), int(im.height * t), int(im.width * r), int(im.height * b))).resize(size, Image.LANCZOS), f"{name}.jpg", 82)

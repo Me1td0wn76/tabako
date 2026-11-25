@@ -6,12 +6,21 @@ import { framed } from "./parts.js";
  * 純喫茶（喫煙席）。奥のボックス席に座り、テーブルの灰皿で吸う。
  */
 
+export const KISSATEN = {
+  eye: 1.13,
+  models: ["chair", "lamp", "siphon", "cup", "grinder", "cabinet", "sofa", "cafetable", "sugar", "menu", "water", "clock", "palm", "register", "showcase", "jars", "record", "stool"],
+  images: ["wood_dark", "plaster", "wood_plank", "panel", "stained"],
+  spot: { y: 0.7305, item: [-0.2, -1.24], phone: [0.3, -1.34], tray: [0.1, -1.4], chillTray: [-0.04, -1.27] },
+};
+
 export async function kissaten() {
-  const kit = await createKit({
-    eye: 1.13,
-    models: ["chair", "lamp", "siphon", "cup", "grinder", "cabinet", "sofa", "cafetable", "sugar", "menu", "water", "clock", "palm", "register", "showcase", "jars", "record", "stool"],
-    images: ["wood_dark", "plaster", "wood_plank", "panel", "stained"],
-  });
+  const kit = await createKit({ eye: KISSATEN.eye, models: KISSATEN.models, images: KISSATEN.images });
+  kissatenSet(kit);
+  return kit.finish(KISSATEN.spot);
+}
+
+// 店の中
+export function kissatenSet(kit) {
   const random = seeded(51);
   const wood = kit.material("wood_dark", { repeat: [3, 1], color: "#b08a6a", roughness: 0.4, bump: 0.5 });
   const dark = kit.material("wood_dark", { repeat: [2, 1], color: "#7a5a42", roughness: 0.5 });
@@ -155,6 +164,4 @@ export async function kissaten() {
   kit.light("#ffb060", 0.9, [2.9, 1.5, -2.4], 3.5, 1.6);
   // 天井近くにたまった煙
   kit.steam({ at: [0.3, 1.5, -4.2], spread: [3.5, 4], count: 12, size: 1.2, grow: 0.8, rise: 0.4, opacity: 0.025, speed: 0.05, color: "#e0c8a0" });
-
-  return kit.finish({ y: 0.7305, item: [-0.2, -1.24], phone: [0.3, -1.34], tray: [0.1, -1.4], chillTray: [-0.04, -1.27] });
 }

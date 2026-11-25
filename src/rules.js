@@ -36,9 +36,9 @@ const rules = (changes) => ({ ...BASE, ...changes });
 
 // マッチの擦りやすさ：帯の広さ・着火場所の長さ・軸の傷みやすさ・折れやすさ
 const MATCH = {
-  gentlePaper: { sweet: [0.22, 0.74], zone: 0.036, pass: 0.27, wearRate: 1.2, wearOutside: 0.6, breakPressure: 0.92, breakTime: 0.32, steady: 0.65 },
-  toughPaper: { sweet: [0.28, 0.56], zone: 0.022, pass: 0.26, wearRate: 2.4, wearOutside: 1.4, breakPressure: 0.75, breakTime: 0.14, steady: 1.25 },
-  toughBox: { sweet: [0.4, 0.76], zone: 0.028, pass: 0.26, wearRate: 2, wearOutside: 1.25 },
+  gentlePaper: { sweet: [0.22, 0.76], zone: 0.036, pass: 0.28, wearRate: 0.75, wearOutside: 0.36, breakPressure: 0.97, breakTime: 0.5, steady: 0.5 },
+  toughPaper: { sweet: [0.26, 0.57], zone: 0.023, pass: 0.26, wearRate: 2.3, wearOutside: 1.25, breakPressure: 0.78, breakTime: 0.13, steady: 1.15 },
+  toughBox: { sweet: [0.37, 0.77], zone: 0.03, pass: 0.27, wearRate: 1.8, wearOutside: 1.1 },
 };
 
 export const FAIL_LINE = 60; // 制限時間のない難易度で、これを超えたらランク F
@@ -90,7 +90,7 @@ export const DIFFICULTIES = {
     place: "engawa",
     notifications: 3,
     ranks: [26, 34, 42, 50, 58],
-    rules: rules({ breath: 0.5, timeLimit: 58, wind: 1.3, windFlip: 6, stock: 5, heatRate: 0.8, match: MATCH.toughBox, events: [2.6, 4.6], firstEvent: 3, stress: 1.6 }),
+    rules: rules({ breath: 0.5, timeLimit: 58, wind: 1.3, windFlip: 6, stock: 5, heatRate: 0.82, match: MATCH.toughBox, events: [2.6, 4.6], firstEvent: 3, stress: 1.6 }),
     note: "吹雪。風向きが勝手に変わり、ヤスリも荒れている。5 本。",
     limits: ["制限 58 秒", "風向きが変わる", "ヤスリが悪い"],
   },

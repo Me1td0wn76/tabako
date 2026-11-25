@@ -6,16 +6,42 @@ import { TAU, can, ridges } from "./parts.js";
  * 港の防波堤（明け方の海）。釣り座に座り、クーラーボックスを机がわりにして吸う。
  */
 
+export const HARBOR = {
+  eye: 0.95,
+  models: ["boat", "lighthouse", "tetrapod", "bollard", "house", "cooler", "tackle", "bluebucket", "rope", "nets", "buoy", "fishcrates", "gull", "truck", "shed", "tree", "cone"],
+  images: ["quay", "concrete", "asphalt", "brickwall"],
+  spot: { y: 0.56, item: [-0.22, -1.2], phone: [0.2, -1.28], tray: [0.06, -1.42], chillTray: [-0.05, -1.28] },
+};
+
 export async function harbor() {
-  const kit = await createKit({
-    eye: 0.95,
-    models: ["boat", "lighthouse", "tetrapod", "bollard", "house", "cooler", "tackle", "bluebucket", "rope", "nets", "buoy", "fishcrates", "gull", "truck", "shed", "tree", "cone"],
-    images: ["quay", "concrete", "asphalt", "brickwall"],
-  });
-  const random = seeded(13);
+  const kit = await createKit({ eye: HARBOR.eye, models: HARBOR.models, images: HARBOR.images });
   kit.sky({ top: "#5c92d6", horizon: "#eec8a6", below: "#5d7488", glow: "#4a2a1a", clouds: 0.3, cloudColor: "#e8b8a0", height: 0.3, sun: [0.16, 0.03, -1], sunColor: "#b8764a" });
   kit.water({ size: [620, 480], y: -1.5, position: [0, -225], deep: "#123850", shallow: "#7f8c9a", sparkle: "#ffe4c4", glitter: 0.14, scale: 0.5, lights: [[[70, 16, -420], "#ffb878"], [[-14, 6, -60], "#5a4a3a"]] });
 
+  harborSet(kit);
+  harborFar(kit);
+  return kit.finish(HARBOR.spot);
+}
+
+// 対岸の町と丘
+export function harborFar(kit) {
+  const random = seeded(19);
+  const houses = [];
+  for (let i = 0; i < 20; i += 1) houses.push({ position: [18 + (i % 10) * 7 + random() * 2, 0.4 + Math.floor(i / 10) * 2.6, -78 - Math.floor(i / 10) * 11 - random() * 4], yaw: Math.floor(random() * 4) * (Math.PI / 2), scale: 0.9 + random() * 0.3 });
+  kit.scatter("house", houses, { color: "#c9b8aa" });
+  kit.scatter("tree", Array.from({ length: 26 }, (_, i) => ({ position: [14 + i * 3.4, 1 + random() * 3, -94 - random() * 12], yaw: random() * TAU, height: 5 + random() * 4 })), { color: "#8f9a8c" });
+  kit.box([120, 3, 40], [74, -1.4, -96], kit.material("asphalt", { repeat: [14, 5], color: "#6a6f68" })).userData.far = true;
+  for (const [x, z, s, color] of [[70, -140, 34, "#4f6064"], [130, -180, 50, "#62727a"], [-140, -300, 52, "#8a8794"], [-40, -380, 40, "#a0929a"]]) {
+    const hill = kit.mesh(new THREE.SphereGeometry(1, 28, 14, 0, TAU, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color, roughness: 1 }), [x, -2, z]);
+    hill.scale.set(s * 1.7, s * 0.4, s);
+    hill.userData.far = true;
+  }
+  ridges(kit, [{ z: -405, color: "#b59a9c", height: 16, seed: 5 }]);
+}
+
+// 岸壁・釣り座・防波堤・船・かもめ
+export function harborSet(kit) {
+  const random = seeded(13);
   /* ---- 岸壁 ---- */
   const quay = kit.material("quay", { repeat: [9, 2.4], color: "#b9b3a8", bump: 1.4 });
   const face = kit.material("brickwall", { repeat: [9, 0.5], color: "#8f8a82", bump: 1 });
@@ -121,19 +147,6 @@ export async function harbor() {
   }
   kit.wires([[10.8, 5.0, -13], [10.8, 5.0, -29], [10.8, 5.0, -45], [12, 5.0, -62]], 2, { spread: 0.2, sag: 0.4, color: "#2a2e34" });
 
-  /* ---- 対岸の町と丘 ---- */
-  const houses = [];
-  for (let i = 0; i < 20; i += 1) houses.push({ position: [18 + (i % 10) * 7 + random() * 2, 0.4 + Math.floor(i / 10) * 2.6, -78 - Math.floor(i / 10) * 11 - random() * 4], yaw: Math.floor(random() * 4) * (Math.PI / 2), scale: 0.9 + random() * 0.3 });
-  kit.scatter("house", houses, { color: "#c9b8aa" });
-  kit.scatter("tree", Array.from({ length: 26 }, (_, i) => ({ position: [14 + i * 3.4, 1 + random() * 3, -94 - random() * 12], yaw: random() * TAU, height: 5 + random() * 4 })), { color: "#8f9a8c" });
-  kit.box([120, 3, 40], [74, -1.4, -96], kit.material("asphalt", { repeat: [14, 5], color: "#6a6f68" })).userData.far = true;
-  for (const [x, z, s, color] of [[70, -140, 34, "#4f6064"], [130, -180, 50, "#62727a"], [-140, -300, 52, "#8a8794"], [-40, -380, 40, "#a0929a"]]) {
-    const hill = kit.mesh(new THREE.SphereGeometry(1, 28, 14, 0, TAU, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color, roughness: 1 }), [x, -2, z]);
-    hill.scale.set(s * 1.7, s * 0.4, s);
-    hill.userData.far = true;
-  }
-  ridges(kit, [{ z: -405, color: "#b59a9c", height: 16, seed: 5 }]);
-
   /* ---- かもめ ---- */
   for (const [x, y, z, yaw] of [[-0.9, 0.46, -3.0, 0.6], [4.0, 0.2, -3.3, -0.4], [-4.6, 0.2, -3.3, 1.0], [2.5, 0.9, -2.4, 2.4]]) kit.put("gull", [x, y, z], { height: 0.3, yaw });
   const wing = new THREE.BufferGeometry();
@@ -162,6 +175,4 @@ export async function harbor() {
     });
   });
   kit.pebbles({ count: 160, x: [-6, 6], z: [-3.1, -1.6], size: [0.006, 0.022], color: ["#7d786f", "#a39d92"], seed: 5 });
-
-  return kit.finish({ y: 0.56, item: [-0.22, -1.2], phone: [0.2, -1.28], tray: [0.06, -1.42], chillTray: [-0.05, -1.28] });
 }

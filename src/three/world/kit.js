@@ -248,17 +248,53 @@ export function wet(material, { scale = 0.5, amount = 0.5, dark = 0.5, base = 1 
 /* 組み立て                                                            */
 /* ------------------------------------------------------------------ */
 
-export async function createKit({ eye, models: modelNames, images: imageNames }) {
+/*
+ * 1 つの場所を組み立てる道具。
+ *   ふつうの場所   eye = 目の高さ。目を中心に SCALE 倍して、手と同じ座標系に重ねる
+ *   街歩きの一部   parent = 地図の根（すでに SCALE 倍してある）。座標は地図の m。灯りは印だけ置き、当たり判定も集める
+ */
+export async function createKit({ eye = 1.5, models: modelNames, images: imageNames, parent = null }) {
   const loadedModels = Object.fromEntries(await Promise.all(modelNames.map(async (name) => [name, await loadModel(name)])));
   const loadedImages = Object.fromEntries(await Promise.all(imageNames.map(async (name) => [name, await loadImage(name)])));
   const group = new THREE.Group();
-  group.scale.setScalar(SCALE);
-  group.position.set(EYE.x, EYE.y - eye * SCALE, EYE.z);
+  if (parent) parent.add(group);
+  else {
+    group.scale.setScalar(SCALE);
+    group.position.set(EYE.x, EYE.y - eye * SCALE, EYE.z);
+  }
   group.updateMatrixWorld(true);
   const updates = [];
+  const solids = []; // 街歩きの当たり判定のもと
+  const emitters = []; // 街歩きの灯りの印
+  let current = group; // いま物を置いているグループ
 
   // 場所の座標 → ワールド座標
   const toWorld = (position) => new THREE.Vector3(...position).multiplyScalar(SCALE).add(group.position);
+
+  // 位置と向きをずらして組み立てる（既存の場所を、地図の中へ置くとき）
+  function frame(at, yaw, build) {
+    const holder = new THREE.Group();
+    holder.position.set(...at);
+    holder.rotation.y = yaw;
+    current.add(holder);
+    holder.updateMatrixWorld(true);
+    const before = current;
+    current = holder;
+    const result = build(holder);
+    current = before;
+    return result ?? holder;
+  }
+  // 中身だけを別のグループにまとめる（近づいたときだけ表示するため）
+  function cluster(build) {
+    return frame([0, 0, 0], 0, build);
+  }
+  // 当たり判定。kind: "box"（幅・高さ・奥行き）か "circle"（半径）
+  function block(size, position, yaw = 0) {
+    solids.push({ parent: current, position, yaw, half: [size[0] / 2, size[1] / 2, size[2] / 2] });
+  }
+  function pillar(radius, height, position) {
+    solids.push({ parent: current, position, radius, height });
+  }
 
   function material(image, { repeat = [1, 1], color = "#ffffff", roughness = 0.9, metalness = 0, bump = 0, ...rest } = {}) {
     let map = null;
@@ -277,14 +313,18 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
   const solid = (color, options = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, ...options });
   const lit = (color, power = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(power) });
 
-  function add(object, position = [0, 0, 0], rotation = [0, 0, 0], parent = group) {
+  function add(object, position = [0, 0, 0], rotation = [0, 0, 0], holder = current) {
     object.position.set(...position);
     object.rotation.set(...rotation);
-    parent.add(object);
+    holder.add(object);
     return object;
   }
   const mesh = (geometry, mat, position, rotation, parent) => add(new THREE.Mesh(geometry, mat), position, rotation, parent);
-  const box = (size, position, mat, rotation, parent) => mesh(new THREE.BoxGeometry(...size), mat, position, rotation, parent);
+  function box(size, position, mat, rotation, holder) {
+    const result = mesh(new THREE.BoxGeometry(...size), mat, position, rotation, holder);
+    if (Math.min(size[0], size[2]) > 0.12 && Math.max(size[0], size[2]) > 0.3) result.userData.size = size;
+    return result;
+  }
   const rbox = (size, radius, position, mat, rotation, parent) => mesh(new RoundedBoxGeometry(...size, 3, radius), mat, position, rotation, parent);
   const cylinder = (top, bottom, height, position, mat, rotation, parent, sides = 24) => mesh(new THREE.CylinderGeometry(top, bottom, height, sides), mat, position, rotation, parent);
 
@@ -295,9 +335,9 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
   }
 
   // 点をつないだ管（手すり・ケーブル・ロープ）
-  function tube(points, radius, mat, { segments = points.length * 8, radial = 8, parent = group } = {}) {
+  function tube(points, radius, mat, { segments = points.length * 8, radial = 8, parent: holder = current } = {}) {
     const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)));
-    return mesh(new THREE.TubeGeometry(curve, segments, radius, radial), mat, undefined, undefined, parent);
+    return mesh(new THREE.TubeGeometry(curve, segments, radius, radial), mat, undefined, undefined, holder);
   }
   // 2 点のあいだに垂らした線
   function hang(a, b, sag, radius, mat, options) {
@@ -322,17 +362,20 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
   }
 
   // 生成した小物を置く。height = 高さ（m）か scale = 倍率、yaw = 向き、lean = [x, z] の傾き
-  function put(name, position, { yaw = 0, scale = 1, height = null, lean = [0, 0], parent = group, ...rest } = {}) {
+  function put(name, position, { yaw = 0, scale = 1, height = null, lean = [0, 0], parent: holder = current, ...rest } = {}) {
     const source = loadedModels[name];
     const item = new THREE.Mesh(source.geometry, look(name, rest));
     item.scale.setScalar(height === null ? scale : height / source.height);
-    return add(item, position, [lean[0], yaw, lean[1]], parent);
+    item.userData.model = name;
+    return add(item, position, [lean[0], yaw, lean[1]], holder);
   }
 
   // 同じ小物をたくさん置く。items = [{ position, yaw, scale, height }]
   function scatter(name, items, options = {}) {
     const source = loadedModels[name];
-    return many(source.geometry, look(name, options), items.map((item) => (item.height ? { ...item, scale: item.height / source.height } : item)));
+    const result = many(source.geometry, look(name, options), items.map((item) => (item.height ? { ...item, scale: item.height / source.height } : item)));
+    result.userData.model = name;
+    return result;
   }
 
   function many(geometry, mat, items) {
@@ -349,9 +392,24 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
       result.setMatrixAt(index, dummy.matrix);
       if (item.color) result.setColorAt(index, tone.set(item.color));
     });
-    result.frustumCulled = false;
-    group.add(result);
+    if (parent) result.computeBoundingSphere();
+    else result.frustumCulled = false;
+    current.add(result);
     return result;
+  }
+
+  // 同じ質感の形を 1 つにまとめる（描画の回数を減らす）。parts = [{ geometry, position, rotation, scale }]
+  function merged(mat, parts) {
+    const dummy = new THREE.Object3D();
+    const list = parts.map(({ geometry, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1] }) => {
+      dummy.position.set(...position);
+      dummy.rotation.set(...rotation);
+      dummy.scale.set(...scale);
+      dummy.updateMatrix();
+      const copy = geometry.index ? geometry.toNonIndexed() : geometry.clone();
+      return copy.applyMatrix4(dummy.matrix);
+    });
+    return mesh(mergeGeometries(list), mat);
   }
 
   // 遠くの建物：窓の写真を貼った箱を大量に並べる（屋上には小屋や水槽も載せる）
@@ -493,7 +551,7 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
     );
     dome.renderOrder = -10;
     dome.frustumCulled = false;
-    add(dome, [0, eye, 0]);
+    add(dome, [0, eye, 0], [0, 0, 0], group);
     updates.push((delta, time) => {
       uniforms.uTime.value = time;
     });
@@ -502,7 +560,8 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
 
   // 水面：空の色を映して、さざ波が動く。lights = [[位置, 色]]（映りこむ灯り、2 つまで）
   function water({ size, y, position = [0, 0], deep, shallow, sparkle = "#ffffff", scale = 1, glitter = 0.6, lights = [], shape = null }) {
-    const at = (index) => (lights[index] ? toWorld(lights[index][0]) : new THREE.Vector3(0, -10000, 0));
+    const holder = current;
+    const at = (index, out = new THREE.Vector3()) => (lights[index] ? holder.localToWorld(out.set(...lights[index][0])) : out.set(0, -10000, 0));
     const uniforms = {
       uTime: { value: 0 },
       uDeep: { value: new THREE.Color(deep) },
@@ -557,6 +616,9 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
     );
     updates.push((delta, time) => {
       uniforms.uTime.value = time;
+      if (!parent) return;
+      at(0, uniforms.uLightA.value);
+      at(1, uniforms.uLightB.value);
     });
     return surface;
   }
@@ -580,7 +642,7 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
       new THREE.PointsMaterial({ color, size: size * SCALE, map: dotTexture(), transparent: true, opacity, depthWrite: false, sizeAttenuation: true }),
     );
     points.frustumCulled = false;
-    group.add(points);
+    current.add(points);
     updates.push((delta, time, wind) => {
       for (let i = 0; i < total; i += 1) {
         const o = i * 3;
@@ -604,16 +666,17 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
       new THREE.PointsMaterial({ color, size: size * SCALE, map: dotTexture(), transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }),
     );
     result.frustumCulled = false;
-    group.add(result);
+    current.add(result);
     return result;
   }
 
   // 立ちのぼる湯気・煙
   function steam({ at, spread = [0, 0], count = 4, size = 0.1, grow = 0.2, rise = 0.4, opacity = 0.12, speed = 0.3, color = "#dfe6f0" }) {
     const random = seeded(Math.round(at[0] * 100 + at[2] * 37 + 500));
+    const holder = current;
     const puffs = Array.from({ length: count }, () => {
       const puff = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture(), color, transparent: true, opacity: 0, depthWrite: false }));
-      group.add(puff);
+      holder.add(puff);
       return { puff, offset: random() * 6, x: at[0] + (random() - 0.5) * spread[0], z: at[2] + (random() - 0.5) * spread[1], turn: random() * 6 };
     });
     updates.push((delta, time, wind) => {
@@ -676,6 +739,12 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
   // 灯り。距離と明るさは m で指定する（場所の拡大に合わせて直す）
   function light(color, intensity, position, distance = 8, decay = 1.6, { shadow = false, flicker = 0 } = {}) {
     const power = intensity * SCALE ** decay;
+    if (parent) {
+      // 街歩き：灯りは近いものだけを使い回すので、ここでは印を置く
+      const marker = add(new THREE.Object3D(), position);
+      emitters.push({ marker, color: new THREE.Color(color), power, distance: distance * SCALE, decay, flicker });
+      return marker;
+    }
     const point = new THREE.PointLight(color, power, distance * SCALE, decay);
     point.position.set(...position);
     if (shadow && !LIGHT_MODE) {
@@ -687,7 +756,7 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
       point.shadow.normalBias = 0.03;
       point.shadow.radius = 3;
     }
-    group.add(point);
+    current.add(point);
     if (flicker) {
       updates.push((delta, time) => {
         point.intensity = power * (1 + (Math.sin(time * 11) * 0.5 + Math.sin(time * 17.3 + 1) * 0.3 + Math.sin(time * 29 + 2) * 0.2) * flicker);
@@ -703,7 +772,7 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
   }
 
   // 絵を描いた板（標識・張り紙・額）
-  function panel(width, height, position, rotation, draw, { pixels = 256, glow = 0, parent = group, ...options } = {}) {
+  function panel(width, height, position, rotation, draw, { pixels = 256, glow = 0, parent: holder = current, ...options } = {}) {
     const map = paint(Math.round((pixels * width) / Math.max(width, height)), Math.round((pixels * height) / Math.max(width, height)), draw);
     const mat = new THREE.MeshStandardMaterial({ map, roughness: 0.7, ...options });
     if (glow) {
@@ -711,7 +780,7 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
       mat.emissiveMap = map;
       mat.emissiveIntensity = glow;
     }
-    return mesh(new THREE.PlaneGeometry(width, height), mat, position, rotation, parent);
+    return mesh(new THREE.PlaneGeometry(width, height), mat, position, rotation, holder);
   }
 
   // 金網のフェンス
@@ -807,40 +876,27 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
     }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    group.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color })));
+    current.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color })));
   }
 
-  // 影を落とす・受ける物を決める（場所ができあがったら 1 回だけ呼ぶ）
-  function finish(spot) {
+  // 影を落とす・受ける物を決める
+  function shade() {
     group.traverse((object) => {
       if (!object.isMesh || !object.material.isMeshStandardMaterial || object.userData.far) return;
       object.receiveShadow = true;
       object.castShadow = !object.material.transparent && !object.userData.flat && !object.userData.noCast;
     });
+  }
+
+  // 場所ができあがったら 1 回だけ呼ぶ
+  function finish(spot) {
+    shade();
     // 道具・スマホ・灰皿を置く所（ワールド座標）
     const at = ([x, z], y = spot.y) => toWorld([x, y, z]);
     return {
       group,
-      update(delta, time, wind) {
-        updates.forEach((fn) => fn(delta, time, wind));
-      },
-      // 別の場所へ移ったら、GPU のメモリーを空ける（戻ってきたときに、もう一度送られる）
-      release() {
-        group.traverse((object) => {
-          object.geometry?.dispose();
-          const mat = object.material;
-          if (mat) for (const key of ["map", "bumpMap", "emissiveMap"]) mat[key]?.dispose();
-          if (object.isLight && object.shadow?.map) {
-            object.shadow.dispose();
-            object.shadow.map = null;
-          }
-        });
-        // スマホでは、読み込んだ素材も手放す
-        if (LIGHT_MODE) {
-          modelNames.forEach((name) => models.delete(name));
-          imageNames.forEach((name) => images.delete(name));
-        }
-      },
+      update,
+      release,
       spot: {
         item: at(spot.item),
         phone: at(spot.phone),
@@ -849,8 +905,39 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
     };
   }
 
+  function update(delta, time, wind) {
+    updates.forEach((fn) => fn(delta, time, wind));
+  }
+  // 別の場所へ移ったら、GPU のメモリーを空ける（戻ってきたときに、もう一度送られる）
+  function release() {
+    group.traverse((object) => {
+      object.geometry?.dispose();
+      const mat = object.material;
+      if (mat) for (const key of ["map", "bumpMap", "emissiveMap"]) mat[key]?.dispose();
+      if (object.isLight && object.shadow?.map) {
+        object.shadow.dispose();
+        object.shadow.map = null;
+      }
+    });
+    // スマホでは、読み込んだ素材も手放す
+    if (LIGHT_MODE) {
+      modelNames.forEach((name) => models.delete(name));
+      imageNames.forEach((name) => images.delete(name));
+    }
+  }
+
   return {
     group,
+    solids,
+    emitters,
+    frame,
+    cluster,
+    block,
+    pillar,
+    merged,
+    shade,
+    update,
+    release,
     models: loadedModels,
     material,
     solid,

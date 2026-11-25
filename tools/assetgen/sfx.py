@@ -67,6 +67,15 @@ SOUNDS = {
     "dud": ("Single very short dull low muted thud, failed action, isolated", 1, "shot", 0.2),
     "success": ("Warm short success jingle, gentle vibraphone and soft pad, relaxed, resolves", 4, "shot", 2.6),
     "fail": ("Short sad descending two note tone, soft, game over, clean, isolated", 3, "shot", 1.2),
+    # ぶらり喫煙の旅：足音・乗り物・扉
+    "step_road": ("One single footstep of a leather shoe on asphalt, short" + DRY, 2, "shot", 0.28),
+    "step_dirt": ("One single footstep on dry forest soil and gravel, short soft crunch" + DRY, 2, "shot", 0.32),
+    "step_snow": ("One single footstep on fresh snow, short soft crunch" + DRY, 2, "shot", 0.4),
+    "step_wood": ("One single footstep of a sock on an old wooden floor, short soft creak" + DRY, 2, "shot", 0.3),
+    "elevator": ("Elevator arrival ding and doors sliding open" + ", clean, no music, no voice", 4, "shot", 2.2),
+    "door": ("Japanese wooden sliding door opening smoothly, short" + DRY, 3, "shot", 0.9),
+    "bus": ("City bus stopping and opening its pneumatic doors with a hiss, then leaving" + ", field recording, no music, no voice", 6, "shot", 4.2),
+    "amb_city": ("Busy small Japanese city street at dusk, distant traffic, footsteps of a few people, faint train passing" + FIELD, 16, "loop", 11.0),
     # 環境音（場所ごと）
     "rain": ("Steady heavy rain falling on a concrete balcony" + FIELD, 14, "loop", 9.0),
     "wind": ("Steady moderate wind blowing at a high open place" + FIELD, 14, "loop", 9.0),

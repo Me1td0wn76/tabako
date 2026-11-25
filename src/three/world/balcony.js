@@ -6,18 +6,31 @@ import { TAU, antenna, can, cottages, powerPole, slats } from "./parts.js";
  * マンションのベランダ（夕暮れの街）。立って、手すりに掛けた小さなテーブルで吸う。
  */
 
+// 場所に置く物・質感・机の位置（街歩きでも使う）
+export const BALCONY = {
+  eye: 1.5,
+  models: ["flowers", "potplant", "laundry", "palm"],
+  images: ["concrete", "wood_plank"],
+  spot: { y: 1.1, item: [-0.2, -1.2], phone: [0.33, -1.2], tray: [0.12, -1.34], chillTray: [-0.06, -1.24] },
+};
+
 export async function balcony() {
   const kit = await createKit({
-    eye: 1.5,
-    models: ["mixed", "house", "tree", "car", "flowers", "potplant", "laundry", "palm"],
-    images: ["facade", "facade2", "concrete", "asphalt", "wood_plank"],
+    eye: BALCONY.eye,
+    models: [...BALCONY.models, "mixed", "house", "tree", "car"],
+    images: [...BALCONY.images, "facade", "facade2", "asphalt"],
   });
   const random = seeded(5);
   const base = -17;
   kit.sky({ top: "#232a6a", horizon: "#c07a90", below: "#2a2238", glow: "#5a3424", stars: 0.15, clouds: 0.65, cloudColor: "#6a4a80", height: 0.4, sun: [0.12, -0.03, -1], sunColor: "#8a4630" });
   city(kit, base, random);
 
-  /* ---- ベランダ ---- */
+  balconySet(kit);
+  return kit.finish(BALCONY.spot);
+}
+
+// 手すり・机・花・洗濯物・風鈴
+export function balconySet(kit) {
   const steel = kit.solid("#7d8288", { metalness: 0.75, roughness: 0.38 });
   kit.ground([9, 3.4], 0, kit.material("concrete", { repeat: [4, 1.5], color: "#8b8780", bump: 0.4 }), [0, -0.1]);
   kit.box([9, 0.14, 0.2], [0, 0.07, -1.58], kit.material("concrete", { repeat: [4, 0.1], color: "#9a968f" }));
@@ -84,8 +97,6 @@ export async function balcony() {
   });
   // 部屋からもれる灯り
   kit.light("#ffcf98", 2.6, [0.6, 2.2, 0.3], 5, 1.5);
-
-  return kit.finish({ y: 1.1, item: [-0.2, -1.2], phone: [0.33, -1.2], tray: [0.12, -1.34], chillTray: [-0.06, -1.24] });
 }
 
 function city(kit, base, random) {
