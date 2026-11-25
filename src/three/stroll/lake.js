@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { CAMP, campGround, campSet } from "../world/camp.js";
 import { seeded } from "../world/kit.js";
-import { TAU, can, forest, ridges, streetLamp, trunk } from "../world/parts.js";
+import { TAU, can, forest, ridges, streetLamp, stringLights, trunk } from "../world/parts.js";
 import { addSpot, localArea, localPoint, nameboard } from "./common.js";
 
 /*
@@ -73,9 +73,9 @@ export function buildLake(kit, api) {
       surface: { image: "wood_plank", color: "#8a7a66", roughness: 0.9 },
       build: () => {
         kit.rbox([0.62, 0.52, 0.5], 0.02, [0, 0.27, -1.28], kit.material("wood_plank", { repeat: [0.6, 0.5], color: "#8a7660", roughness: 0.9, bump: 0.6 }));
-        kit.put("lantern", [0.4, 0, -0.9], { height: 0.28, glow: 1.2, threshold: 0.6, tint: "#ffcf90" });
-        kit.light("#ffc27a", 1.4, [0.4, 0.5, -0.9], 4, 1.6);
-        can(kit, [0.22, 0.54, -1.4], { color: "#23384a", band: "#e0a64a" });
+        kit.put("lantern", [0.2, 0.53, -1.42], { height: 0.26, glow: 1.2, threshold: 0.6, tint: "#ffcf90" });
+        kit.light("#ffc27a", 2.2, [0.2, 0.8, -1.3], 4.5, 1.6);
+        can(kit, [-0.22, 0.53, -1.44], { color: "#23384a", band: "#e0a64a" });
       },
     });
     kit.put("rowboat", [4.6, -0.42, -14.6], { height: 0.7, yaw: 0.3 });
@@ -124,6 +124,10 @@ export function buildLake(kit, api) {
         kit.put("lantern", [0.5, 0.74, -1.6], { height: 0.26, glow: 1.2, threshold: 0.6, tint: "#ffcf90" });
         kit.light("#ffc27a", 2.0, [0.5, 1.0, -1.5], 5, 1.6);
         kit.put("mug", [-0.4, 0.74, -1.6], { height: 0.1 });
+        stringLights(kit, [-4.5, 2.6, -4.6], [4.4, 2.5, -4.2], { sag: 0.5, count: 12, radius: 0.026 });
+        kit.light("#ffb866", 3.4, [0, 2.0, -4.0], 8, 1.5);
+        kit.put("firewood", [-2.6, 0, -3.4], { height: 0.5, yaw: 0.4 });
+        kit.put("stump", [2.4, 0, -3.2], { height: 0.7, yaw: 1.4 });
       },
     });
   });

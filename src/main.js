@@ -2028,6 +2028,10 @@ function strollSmoke(spot, tool) {
 // 火がついたら、そのまま吸う
 function strollLit() {
   state.thumbDown = false;
+  setView("main");
+  Object.values(matchRigs).forEach((rig) => {
+    rig.group.visible = false;
+  });
   sfx.clear();
   flash("ignite");
   setPhase("chill");

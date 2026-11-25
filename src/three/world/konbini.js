@@ -71,7 +71,7 @@ export function konbiniSet(kit) {
     ctx.font = `bold ${Math.round(w * 0.24)}px sans-serif`;
     ctx.textAlign = "center";
     ctx.fillText("喫煙所", w / 2, h * 0.89);
-  }, { glow: 0.25 });
+  }, { glow: 0.12 });
   kit.put("cone", [-2.0, 0, -2.9], { yaw: 0.4 });
   kit.put("cone", [-2.7, 0, -3.8], { yaw: 1.4 });
   kit.put("crates", [2.3, 0, -3.2], { height: 0.62, yaw: 0.5 });

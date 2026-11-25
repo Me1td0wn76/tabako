@@ -48,7 +48,7 @@ export function buildTown(kit, api) {
   office(kit, api);
   coffee(kit, api);
   // コンビニ
-  addSpot(kit, api, { id: "konbini", name: "コンビニ前", ...KONBINI_AT, eye: KONBINI.eye, table: KONBINI.spot, place: "konbini", build: () => konbiniSet(kit) });
+  addSpot(kit, api, { id: "konbini", name: "コンビニ前", ...KONBINI_AT, eye: KONBINI.eye, table: KONBINI.spot, place: "konbini", lamp: ["#fff0dc", 3.6, [-1.0, 2.5, 7.9]], build: () => konbiniSet(kit) });
   station(kit, api);
   park(kit, api, random);
   alley(kit, api);
@@ -113,7 +113,7 @@ function blocks(kit, random) {
   facades(kit, "facade3", [B(-25.4, -18, 7.4, 18, 10.5), B(13.6, 21, 7.4, 18, 13.5), B(31.4, 40, 7.4, 16.8, 16.5), B(-62, -48, -20, -7.4, 16.5), B(-32, -22, 21, 35.5, 9), B(7, 18, 20, 34, 9), B(50, 62, 18, 34, 15), B(-60, -46, 41, 57, 12), B(31, 44, 43, 57, 12)], { tile: [16, 15], glow: 0.9, gain: 1.15, threshold: 0.62, seed: 2 });
   facades(kit, "facade4", [B(-33, -26, 7.4, 17.4, 8.4), B(6.2, 13, 7.4, 17.6, 9.2), B(21.6, 30.6, 7.4, 17, 8.2), B(-11.6, -6.2, -18, -7.4, 8), B(-20, -7, 21, 35.5, 12), B(20, 33, 20, 34, 11.5), B(-32, -20, 43, 57, 8.5), B(47, 62, 43, 57, 14), { ...B(-15.6, -8.6, 7.4, 18.9, 6.4), y: 2.95 }], { tile: [18, 15], glow: 0.75, gain: 2.4, seed: 5 });
   facades(kit, "facade", [B(41, 50, 7.4, 17, 11), B(36, 48, 18.4, 34, 9), B(-18, -7, 43, 57, 10.5)], { tile: [24, 24], glow: 1.1, gain: 1.7, seed: 7 });
-  facades(kit, "facade2", [B(51, 62, 7.4, 17, 21), { x: 23, z: -20.1, w: 26.6, d: 21.4, h: 29.9 }], { tile: [24, 24], glow: 1.1, gain: 1.3, seed: 9 });
+  facades(kit, "facade2", [B(51, 62, 7.4, 17, 21), { x: 23, z: -20.1, w: 26.6, d: 21.4, h: 29.9, flat: true }], { tile: [24, 24], glow: 1.1, gain: 1.3, seed: 9 });
   // 店先
   const S = (x0, x1, z, facing) => ({ x: (x0 + x1) / 2, z, w: x1 - x0 - 0.3, facing });
   shopfronts(kit, "shopa", [S(-33, -26, 7.36, Math.PI), S(-11.6, -6.2, -7.36, 0), { x: -33.96, z: 46.5, w: 6, facing: -Math.PI / 2 }, { x: -33.96, z: 53.4, w: 6, facing: -Math.PI / 2 }]);
@@ -224,7 +224,7 @@ function railway(kit) {
 
 function home(kit, api) {
   const wall = { glow: 0.9, gain: 1.15, threshold: 0.62, tile: [16, 15], seed: 12 };
-  const B = (x0, x1, z0, z1, y, h) => ({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h, y });
+  const B = (x0, x1, z0, z1, y, h) => ({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h, y, flat: true });
   // 部屋のぶんをくり抜いて建てる
   facades(kit, "facade3", [B(8, 28, 43.5, 50.5, 0, 5.9), B(8, 15.4, 43.5, 50.5, 5.9, 3.4), B(20.6, 28, 43.5, 50.5, 5.9, 3.4), B(15.4, 20.6, 43.5, 45.9, 5.9, 3.4)], wall);
   const roof = kit.material("concrete", { repeat: [6, 2], color: "#7a766f" });
@@ -391,7 +391,7 @@ function station(kit, api) {
       panelAt(2.9, -2.9, 0, 1.6);
       panelAt(3.6, -1.2, Math.PI / 2, 3.2);
       kit.put("npc_smoker", [2.4, 0, -1.6], { yaw: -0.9 });
-      nameboard(kit, "喫煙所", [-0.6, 2.15, -2.88], 0, { width: 1.3, height: 0.4, back: "#1d6b5c" });
+      nameboard(kit, "喫煙所", [-0.6, 2.0, -2.88], 0, { width: 0.8, height: 0.26, back: "#1d6b5c", glow: 0.25 });
       kit.light("#fff0d8", 2.6, [0.4, 2.4, -1.4], 6, 1.5);
       kit.bulb([0.5, 0.06, 0.16], "#fff2dc", 1.8, [0.4, 2.5, -1.4]);
       can(kit, [1.8, 0.9, -1.0], { color: "#23384a", band: "#e0a64a" });
@@ -461,7 +461,7 @@ function alley(kit, api) {
   kit.put("crates", [-34.8, 0, 50.2], { height: 0.62, yaw: 0.1, color: "#9ab8e8" });
   kit.put("bins", [-44.2, 0, 45], { yaw: 1.6, scale: 0.9 });
   kit.put("aboard", [-37.2, 0, 43.4], { yaw: 0.4 });
-  signboard(kit, "屋台", [-41.2, 1.6, 50.6], 0.2, { width: 0.5, height: 1.1 });
+  signboard(kit, "屋台", [-36.6, 1.9, 51.6], 0.2, { width: 0.4, height: 0.9, glow: 0.4 });
   addSpot(kit, api, {
     id: "alley",
     name: "路地裏の屋台",

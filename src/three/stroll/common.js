@@ -34,7 +34,7 @@ export function addSpot(kit, api, { seat = null, place = null, build = null, smo
     if (seat) seatMesh = kit.put(seat.model, seat.at, { yaw: seat.yaw ?? 0, height: seat.height ?? null });
   });
   const look = place ? PLACES[place] : null;
-  api.spot({ lamp: look?.light.lamp, fill: look?.light.fill, surface: look?.surface, ...spot, at: origin, yaw, tray, seat: seatMesh });
+  api.spot({ lamp: look?.light.lamp, fill: look?.light.fill, surface: look?.surface, ...Object.fromEntries(Object.entries(spot).filter(([, value]) => value !== undefined)), at: origin, yaw, tray, seat: seatMesh });
 }
 
 // いま組み立てている所から、地図の座標へ
@@ -120,13 +120,14 @@ export function facades(kit, image, list, { tile = [16, 15], glow = 1, gain = 1.
     if (solid) kit.block([w, h, d], [x, y + h / 2, z]);
     return { geometry, position: [x, y + h / 2, z] };
   });
-  const roofs = list.flatMap(({ x, z, w, d, h, y = 0 }) => {
+  const roofs = list.flatMap(({ x, z, w, d, h, y = 0, flat = false }) => {
+    if (flat) return [];
     const rail = (sx, sz, px, pz) => ({ geometry: new THREE.BoxGeometry(sx, 0.7, sz), position: [x + px, y + h + 0.35, z + pz] });
     const shed = { geometry: new THREE.BoxGeometry(w * 0.28, 2.3, d * 0.3), position: [x + (random() - 0.5) * w * 0.4, y + h + 1.15, z + (random() - 0.5) * d * 0.3] };
     return [rail(w, 0.2, 0, d / 2 - 0.1), rail(w, 0.2, 0, -d / 2 + 0.1), rail(0.2, d, w / 2 - 0.1, 0), rail(0.2, d, -w / 2 + 0.1, 0), shed];
   });
   kit.merged(mat, parts);
-  kit.merged(kit.solid("#5a5560", { roughness: 0.95 }), roofs);
+  if (roofs.length) kit.merged(kit.solid("#5a5560", { roughness: 0.95 }), roofs);
 }
 
 // 店先の写真を、建物の 1 階に貼る。list = [{ x, z, w, facing }]（facing = 向き。0 = 南、π = 北、π/2 = 東）

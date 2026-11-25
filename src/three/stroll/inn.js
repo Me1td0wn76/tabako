@@ -239,17 +239,17 @@ function footbath(kit, api) {
     addSpot(kit, api, {
       id: "ashiyu",
       name: "足湯",
-      at: [0, 0.14, 1.06],
+      at: [0, 0.14, 1.78],
       yaw: 0,
       eye: 0.98,
-      table: { y: 0.56, item: [-0.2, -1.2], phone: [0.24, -1.3], chillTray: [0.42, -1.0] },
+      table: { y: 0.56, item: [-0.2, -1.2], phone: [0.24, -1.3], chillTray: [0.5, -1.12] },
       lamp: ["#ffc689", 3.8, [-1.2, 2.2, 7.2]],
       fill: ["#7f98d0", 0.4],
       surface: { image: "wood_dark", color: "#b3a290", roughness: 0.6 },
       build: () => {
         kit.rbox([2.0, 0.06, 0.4], 0.02, [0, 0.36, 0.16], dark);
-        kit.rbox([0.7, 0.04, 0.46], 0.01, [0.42, 0.54, -1.02], dark);
-        for (const x of [0.12, 0.72]) kit.box([0.06, 0.2, 0.4], [x, 0.42, -1.02], dark).userData.pass = true;
+        kit.rbox([0.62, 0.04, 0.42], 0.01, [0.5, 0.54, -1.12], dark);
+        for (const x of [0.24, 0.76]) kit.box([0.06, 0.54, 0.36], [x, 0.27, -1.12], dark).userData.pass = true;
       },
     });
   });
