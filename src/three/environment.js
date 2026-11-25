@@ -122,7 +122,7 @@ export function createEnvironment(renderer, scene) {
     renderer.toneMapping = THREE.NoToneMapping;
     withPlaceOnly(currentKit, () => {
       renderer.shadowMap.needsUpdate = true;
-      scene.environment = null;
+      // 写り込みを外して描くと、シェーダーを作り直すことになって止まるので、前の写り込みのまま撮る
       const next = pmrem.fromScene(scene, 0.015, 0.3, 1400, { position: eye });
       scene.environment = next.texture;
       external?.dispose();

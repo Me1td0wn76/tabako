@@ -231,6 +231,8 @@ export function createStrollWorld({ scene, camera, renderer, capture }) {
   }
 
   // 描く準備（シェーダーと画像の転送）を、少しずつ済ませる
+  // 本番は画像の中へ描く（あとでぼかし・色の調整をする）ので、準備も同じ条件でする
+  const warmTarget = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType });
   async function warm(kit) {
     const textures = new Set();
     kit.group.traverse((object) => {
@@ -243,7 +245,10 @@ export function createStrollWorld({ scene, camera, renderer, capture }) {
       count += 1;
       if (count % 4 === 0) await breathe();
     }
-    await renderer.compileAsync?.(kit.group, camera, scene).catch(() => {});
+    renderer.setRenderTarget(warmTarget);
+    const compiled = renderer.compileAsync?.(kit.group, camera, scene);
+    renderer.setRenderTarget(null);
+    await compiled?.catch(() => {});
   }
 
   async function loadPart(part, mine, onStep) {
