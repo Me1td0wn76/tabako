@@ -20,6 +20,7 @@ npm run dev
 - 同じ Wi-Fi のスマホで試す：`npm run dev -- --host` で起動し、表示された `Network` の URL をスマホで開く
 - Web で遊ぶ：<https://me1td0wn76.github.io/tabako/>（`main` に push すると、`.github/workflows/pages.yml` が自動で公開する）
 - 別の所に置く：`npm run build` でできる `dist/` を、そのまま静的サイトとして公開する。相対パスで書き出すので、サブフォルダーに置いても動く
+  - URL が変わるときは、X に貼ったときのカードのために、`index.html` の `og:url` / `og:image` と `src/share.js` の `SITE_URL` も変える
 - PC でタッチ操作を確かめる：URL に `?touch` を付ける
 
 ## 難易度と場所
@@ -142,6 +143,8 @@ npm run dev
 - `src/rules.js`：難易度ごとの制限、チャレンジの難しくなり方、ストレスの増減
 - `src/places.js`：場所の一覧（照明・霞・風の当たりやすさ・手元の台の質感）
 - `src/touch.js`：スマホのタッチ操作
+- `src/share.js`：X への投稿（投稿画面を開くリンクと、その文面）。リンクはタイトルの下・結果・まったり喫煙の一時停止・旅の地図と一服のあとに出る
+- `public/og.jpg`：X などに貼ったときに出るカードの画像
 - `src/stroll.js`：ぶらり喫煙の旅の進行（歩く・調べる・乗り物・地図・座る）
 - `src/travel.js`：移動中（読み込み中）の車窓の画面
 - `src/audio.js`：効果音と環境音の再生
@@ -176,6 +179,7 @@ npm run dev
 | 画像の仕上げ | Pillow | `prep_images.py` |
 | 効果音・環境音 | Stable Audio 3 small SFX | `sfx.py gen` → `sfx.py build` |
 | 公開用に軽くする | glTF Transform / sharp | `compress.mjs`（モデルは meshopt と WebP、画像は WebP。作り直したら最後にかける） |
+| 車のマークを消す | Pillow | `unbadge.py`（実在のメーカーに似たマークを塗りつぶす。`compress.mjs` のあとにかける） |
 
 ComfyUI（`127.0.0.1:8188`）を起動してから、ComfyUI の Python で実行します。途中の写真や GLB は `ComfyUI/output/tabako/` に残ります。
 
@@ -186,4 +190,6 @@ C:/Users/user/ComfyUI/.venv/Scripts/python.exe gen.py mesh --only lighter_body -
 "C:/Program Files/Blender Foundation/Blender 4.5/blender.exe" -b -P bl_props.py -- C:/Users/user/ComfyUI/output/tabako/glb ../../src/assets/models lighter
 ```
 
-公開や販売をする前に、各モデルのライセンスを確認してください。Stable Audio 3 は Stability AI の Community License です。
+使ったモデル・ライブラリ・フォントとそのライセンスは、タイトルの下の「クレジット」（`index.html`）に書いてあります。新しく何かを使ったら、そこにも書き足してください（three.js などの MIT License は、著作権表示と全文を載せることが条件です）。
+
+広告・寄付・販売などでお金を受け取るようにするときは、その前に各モデルのライセンスを確認してください。Stable Audio 3（Stability AI Community License）は、商用で使うなら Stability AI への登録が必要です。

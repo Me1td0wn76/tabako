@@ -2383,6 +2383,11 @@ h2 {
     width: calc(100% - 32px);
   }
 
+  .fine-links {
+    display: flex;
+    margin: 2px 0 0 -6px;
+  }
+
   .help-grid {
     grid-template-columns: 1fr;
   }
