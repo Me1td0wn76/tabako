@@ -32,7 +32,7 @@ function quay(kit, api) {
     /* ---- 灯台へ続く堤 ---- */
     const top = kit.material("quay", { repeat: [1, 14], color: "#b3ada2", bump: 1.2 });
     kit.box([3.4, 1.8, 47.5], [-14, -0.9, -26.4], top).userData.pass = true;
-    localArea(kit, api, { x: [-15.5, -12.5], z: [-50.4, -2.8], y: 0, surface: "road" });
+    localArea(kit, api, { x: [-15.5, -12.5], z: [-53, -2.8], y: 0, surface: "road" });
     for (let i = 0; i < 8; i += 1) kit.box([0.3, 0.22, 4.6], [-15.4, 0.1, -6 - i * 5.8], kit.solid("#b8a860", { roughness: 1 }));
     for (let i = 0; i < 5; i += 1) kit.box([3.4, 0.22, 0.7], [-14, 0.1 + i * 0.2, -50.2 - i * 0.6], top);
     kit.box([9, 1.4, 6.4], [-15.4, 0.28, -56.2], top).userData.pass = true;
