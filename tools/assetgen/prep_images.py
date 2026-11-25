@@ -67,7 +67,6 @@ for name, source in (("facade", "facade_610"), ("facade2", "facade2_612")):
 # 店の棚・冷蔵ケース・ステンドグラス（余白を切り落とす）
 for name, source, (l, t, r, b), size in (
     ("goods", "goods_627", (0.0, 0.09, 1.0, 0.93), (768, 640)),
-    ("fridge", "fridge_628", (0.05, 0.15, 0.96, 0.85), (768, 590)),
     ("stained", "stained_624", (0.06, 0.04, 0.94, 0.96), (480, 660)),
     # 街歩き：店先・建物
     ("shopa", "shopa_641", (0.06, 0.16, 0.94, 0.9), (768, 512)),
@@ -81,6 +80,15 @@ for name, source, (l, t, r, b), size in (
 ):
     im = load(source)
     save(im.crop((int(im.width * l), int(im.height * t), int(im.width * r), int(im.height * b))).resize(size, Image.LANCZOS), f"{name}.jpg", 82)
+
+# 冷蔵ケース：実在の商品に見えないように、ラベルのない無地の缶とびんだけで組む（2 枚を互い違いに 4 つ並べる）
+vivid = load("fridge_1201").crop((56, 108, 980, 1004))
+pastel = load("fridgeb_1201").crop((76, 92, 960, 952))
+fridge = Image.new("RGB", (768, 590), (236, 240, 242))
+for i, (im, flip) in enumerate(((vivid, False), (pastel, True), (pastel, False), (vivid, True))):
+    im = im.transpose(Image.FLIP_LEFT_RIGHT) if flip else im
+    fridge.paste(im.resize((376, 291), Image.LANCZOS), (4 + (i % 2) * 384, 2 + (i // 2) * 295))
+save(fridge, "fridge.jpg", 82)
 
 # 紙マッチの表紙（上面）：奥の長辺にヤスリの帯。props.js の寸法（0.115 x 0.065、帯の中心は奥から 22%）に合わせる
 cover = load("matchbook_282")

@@ -475,6 +475,134 @@ h1 {
   line-height: 1.6;
 }
 
+/* クレジットと X への投稿（目立たせない） */
+.fine-links {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.fine-link {
+  padding: 5px 6px;
+  border: 0;
+  background: none;
+  color: #6f7e77;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.6;
+  text-decoration: none;
+}
+
+.fine-link:hover,
+.fine-link:focus-visible {
+  color: var(--text-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.share-link {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.share-link:hover {
+  background: rgba(231, 240, 223, 0.06);
+  color: var(--text);
+}
+
+.share-link:focus-visible,
+.fine-link:focus-visible,
+.credits-license summary:focus-visible {
+  outline: 2px solid #eef7df;
+  outline-offset: 2px;
+}
+
+.result-main .share-link {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.scene-message .share-link {
+  margin-top: 4px;
+  pointer-events: auto;
+}
+
+.scene-message.hidden .share-link {
+  pointer-events: none;
+}
+
+.credits {
+  width: min(600px, calc(100vw - 32px));
+}
+
+.credits-body {
+  padding: 16px 18px 20px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.credits-list {
+  display: grid;
+  margin: 0;
+  gap: 10px;
+}
+
+.credits-list div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.credits-list dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.credits-list dd {
+  grid-column: 2;
+  margin: 0;
+}
+
+.credits-list small {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.credits-notes {
+  padding: 14px 0 0 1.2em;
+  border-top: 1px solid var(--line);
+  margin: 16px 0 14px;
+  font-size: 12px;
+}
+
+.credits-license {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.credits-license summary {
+  cursor: pointer;
+}
+
+.credits-license pre {
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 .start-button:disabled {
   cursor: progress;
   opacity: 0.75;
@@ -3046,8 +3174,12 @@ h2 {
   font-size: 12px;
 }
 
-.stroll-cancel {
-  justify-self: start;
+.stroll-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .stroll-map canvas {

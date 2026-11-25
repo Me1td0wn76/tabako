@@ -7,6 +7,7 @@ import { AVATAR_URLS, loadAssets, loadLater } from "./assets.js";
 import { createAudio } from "./audio.js";
 import { CHILL_KEYS, DIFFICULTIES, FAIL_LINE, STRESS, STROLL_AFTER, STROLL_RULES, tremorOf, unlimitedRound } from "./rules.js";
 import { PLACES, PLACE_IDS } from "./places.js";
+import { POSTS, setPost } from "./share.js";
 import { createStroll } from "./stroll.js";
 import { createTouch, enterFullscreen } from "./touch.js";
 import { createEnvironment } from "./three/environment.js";
@@ -200,6 +201,9 @@ const ui = {
   placeList: $("#place-list"),
   help: $("#help"),
   helpButton: $("#help-button"),
+  credits: $("#credits"),
+  creditsButton: $("#credits-button"),
+  shareGame: $("#share-game"),
   soundToggle: $("#sound-toggle"),
   timer: $("#timer"),
   timerCard: $("#timer-card"),
@@ -266,6 +270,7 @@ const ui = {
   messageKicker: $("#message-kicker"),
   messageTitle: $("#message-title"),
   messageCopy: $("#message-copy"),
+  messageShare: $("#message-share"),
   flameBar: $("#flame-bar"),
   flameValue: $("#flame-value"),
   matchBar: $("#match-bar"),
@@ -287,6 +292,7 @@ const ui = {
   resultBest: $("#result-best"),
   resultCopy: $("#result-copy"),
   resultUnlock: $("#result-unlock"),
+  resultShare: $("#result-share"),
   resStrikes: $("#res-strikes"),
   resDrops: $("#res-drops"),
   resDropsLabel: $("#res-drops-label"),
@@ -664,10 +670,13 @@ ui.phoneUi.addEventListener("pointercancel", () => {
   state.phoneHeld = false;
 });
 ui.banner.addEventListener("pointerdown", onBannerTap);
-ui.helpButton.addEventListener("click", () => ui.help.showModal());
-ui.help.addEventListener("click", (event) => {
-  if (event.target === ui.help) ui.help.close();
-});
+for (const [button, dialog] of [[ui.helpButton, ui.help], [ui.creditsButton, ui.credits]]) {
+  button.addEventListener("click", () => dialog.showModal());
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+setPost(ui.shareGame, POSTS.game);
 document.addEventListener("pointerlockchange", onPointerLockChange);
 ui.startButton.addEventListener("click", startSelected);
 ui.replayButton.addEventListener("click", replay);
@@ -689,7 +698,9 @@ function onKeyDown(event) {
     state.cupHeld = true;
     pressedKeys.add("Shift");
   }
-  if (event.repeat || ui.help.open) return;
+  if (event.repeat || ui.help.open || ui.credits.open) return;
+  // キーボードで選んでいるリンクやボタンは、そのまま押せるようにする
+  if (code === "Enter" && event.target.closest?.("a, #help-button, #credits-button")?.matches(":focus-visible")) return;
 
   if (!state.paused && stroll.active && (state.phase === "stroll" || stroll.menuOpen) && stroll.onKey(code)) {
     event.preventDefault();
@@ -910,7 +921,7 @@ function lockPointer() {
 }
 
 function canPause() {
-  return isTiming() || state.phase === "chill" || (state.phase === "stroll" && !stroll.menuOpen);
+  return isTiming() || ((state.phase === "chill" || state.phase === "stroll") && !stroll.menuOpen);
 }
 
 function onPointerLockChange() {
@@ -929,6 +940,9 @@ function pauseGame() {
   sfx.setMoth(0);
   if (document.pointerLockElement) document.exitPointerLock?.();
   showMessage("PAUSED", "一時停止中", touch.active ? "画面をタップで再開　右上の Ⅱ でタイトルへ" : "クリック / Enter で再開　Q でタイトルへ");
+  // まったり喫煙には結果の画面がないので、ここから投稿できるようにする
+  const { count } = smoker.state;
+  if (state.mode === "chill" && count > 0) setPost(ui.messageShare, POSTS.chill({ place: PLACES[currentPlace.id].label, count }));
 }
 
 function resumeFromPause() {
@@ -1891,6 +1905,10 @@ function showResult({ success, rank, isBest, unlockedNow, reason }) {
     ? `${reason}。${state.round} 本つけた。`
     : success ? RANK_COPY[rank] : `${reason}。火をつけられなかったのでランクは F。`;
   ui.resultUnlock.hidden = !unlockedNow;
+  const { label } = state.spec;
+  const tool = TOOLS[state.tool].label;
+  const time = ui.resultTime.textContent;
+  setPost(ui.resultShare, unlimited ? POSTS.unlimited({ count: state.round, time, isBest }) : success ? POSTS.lit({ label, tool, time, rank, isBest }) : POSTS.failed({ label, tool, reason }));
   ui.resStrikes.textContent = String(stats.attempts);
   if (isMatchTool()) {
     const used = matchStock() - state.matchesLeft + (success ? 1 : 0);
@@ -3240,6 +3258,7 @@ function showMessage(kicker, title, copy) {
   ui.messageKicker.textContent = kicker;
   ui.messageTitle.textContent = title;
   ui.messageCopy.textContent = copy;
+  ui.messageShare.hidden = true;
   ui.message.classList.remove("hidden");
 }
 

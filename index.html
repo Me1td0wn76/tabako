@@ -11,6 +11,18 @@
       name="description"
       content="ライターやマッチを指先で操って火をつけ、風やお邪魔イベントから火を守って煙草に着火する一人称3Dミニゲーム。"
     />
+    <!-- X などに貼ったときのカード（公開先が変わったら、URL と src/share.js の SITE_URL も変える） -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="WINDPROOF" />
+    <meta property="og:title" content="WINDPROOF — 火を、守りきれ。" />
+    <meta property="og:description" content="ライターとマッチの火を、風とお邪魔から守りきる一人称 3D ミニゲーム。ブラウザーで無料。" />
+    <meta property="og:url" content="https://me1td0wn76.github.io/tabako/" />
+    <meta property="og:image" content="https://me1td0wn76.github.io/tabako/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="夜の闇の中、手で覆われたライターの火" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="./src/style.css" />
     <link rel="icon" href="./src/assets/images/thumb_balcony.webp" />
     <title>WINDPROOF — 火を守れ</title>
@@ -57,8 +69,87 @@
           <button id="help-button" class="ghost-button help-button" type="button">遊び方</button>
           <p class="start-note only-mouse"><kbd>Enter</kbd> でも開始</p>
         </div>
-        <p class="disclaimer">操作の不器用さを楽しむフィクションのゲームです。喫煙を勧めるものではありません。</p>
+        <p class="disclaimer">
+          操作の不器用さを楽しむフィクションのゲームです。喫煙を勧めるものではありません。20 歳未満の喫煙は法律で禁止されています。
+          <span class="fine-links">
+            <button id="credits-button" class="fine-link" type="button">クレジット</button>
+            <a id="share-game" class="fine-link" target="_blank" rel="noopener noreferrer">X で紹介する</a>
+          </span>
+        </p>
       </section>
+
+      <!-- ============ クレジット（使ったものとライセンス） ============ -->
+      <dialog id="credits" class="help credits" aria-labelledby="credits-title">
+        <div class="help-head">
+          <h2 id="credits-title">クレジット</h2>
+          <form method="dialog"><button class="help-close" type="submit" aria-label="閉じる">✕</button></form>
+        </div>
+        <div class="credits-body">
+          <dl class="credits-list">
+            <div><dt>企画・制作</dt><dd>Me1td0wn76</dd></div>
+            <div>
+              <dt>画像</dt>
+              <dd>FLUX.2 [klein] 4B <small>Black Forest Labs／Apache License 2.0</small></dd>
+              <dd>Qwen3-4B <small>Alibaba Cloud／Apache License 2.0</small></dd>
+              <dd>BiRefNet <small>MIT License</small></dd>
+            </div>
+            <div>
+              <dt>3D モデル</dt>
+              <dd>TRELLIS.2 <small>Microsoft／MIT License</small></dd>
+              <dd>DINOv3 <small>Meta／DINOv3 License</small></dd>
+            </div>
+            <div>
+              <dt>効果音</dt>
+              <dd>Stable Audio 3 Small SFX <small>Stability AI／Stability AI Community License</small></dd>
+              <dd>T5Gemma <small>Google／Gemma Terms of Use</small></dd>
+              <dd>Powered by Stability AI</dd>
+            </div>
+            <div>
+              <dt>プログラム</dt>
+              <dd>three.js・meshoptimizer・Vite <small>MIT License（全文は下）</small></dd>
+            </div>
+            <div>
+              <dt>フォント</dt>
+              <dd>DM Sans・DM Mono・Noto Sans JP <small>SIL Open Font License 1.1／Google Fonts</small></dd>
+            </div>
+          </dl>
+          <ul class="credits-notes">
+            <li>画像・3D モデル・効果音は、おもに生成 AI で作り、手を加えたものです。</li>
+            <li>登場する人物・店・商品・土地は架空で、実在のものとは関係ありません。</li>
+            <li>記録は、この端末のブラウザーの中にだけ保存します。文字の表示に Google Fonts を使うため、Google のサーバーに接続します。</li>
+            <li>会社名・製品名は、それぞれの会社の商標または登録商標です。</li>
+          </ul>
+          <details class="credits-license">
+            <summary>MIT License（three.js / meshoptimizer / Vite）</summary>
+            <pre lang="en">three.js
+Copyright © 2010-2025 three.js authors
+
+meshoptimizer
+Copyright (c) 2016-2024 Arseny Kapoulkine
+
+Vite
+Copyright (c) 2019-present, VoidZero Inc. and Vite contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</pre>
+          </details>
+        </div>
+      </dialog>
 
       <!-- ============ 遊び方 ============ -->
       <dialog id="help" class="help" aria-labelledby="help-title">
@@ -300,6 +391,7 @@
             <span id="message-kicker" class="message-kicker">READY?</span>
             <strong id="message-title">風に負けるな。</strong>
             <span id="message-copy" class="message-copy">準備ができたら、ゲームを始めよう。</span>
+            <a id="message-share" class="share-link" target="_blank" rel="noopener noreferrer" hidden>X でポスト</a>
           </div>
 
           <div id="result-card" class="result-card" data-tone="success" hidden>
@@ -311,6 +403,7 @@
                 <strong id="result-time">00.00</strong>
                 <span id="result-best" class="result-best" hidden>NEW BEST</span>
               </div>
+              <a id="result-share" class="share-link" target="_blank" rel="noopener noreferrer">X でポスト</a>
             </div>
             <p id="result-copy" class="result-copy"></p>
             <p id="result-unlock" class="result-unlock" hidden>🔓 まったり喫煙モードが解放された！ タイトル画面から遊べます。</p>

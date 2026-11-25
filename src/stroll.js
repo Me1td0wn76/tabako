@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { SCALE } from "./three/world/kit.js";
+import { POSTS, setPost } from "./share.js";
 import { createTravel } from "./travel.js";
 
 /*
@@ -96,8 +97,8 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     <button class="stroll-prompt" type="button" hidden><kbd>E</kbd><span></span></button>
     <div class="stroll-buttons only-touch"><button type="button" data-stroll="map">地図</button></div>
     <button class="stroll-stand" type="button" data-stroll="stand">消して立つ</button>
-    <div class="stroll-menu" role="dialog" aria-modal="true" hidden><div class="stroll-panel"><p class="eyebrow"></p><h3></h3><div class="stroll-cards"></div><button class="ghost-button stroll-cancel" type="button">やめる <kbd>Esc</kbd></button></div></div>
-    <div class="stroll-map" role="dialog" aria-label="地図" hidden><div class="stroll-panel"><p class="eyebrow">MAP</p><h3>喫煙所めぐり</h3><div class="stroll-map-body"><canvas width="760" height="560"></canvas><ul class="stroll-list"></ul></div><p class="stroll-legend"><i class="done"></i>一服した　<i class="seen"></i>見つけた　<span>灰皿のある所で吸えます</span></p><button class="ghost-button stroll-cancel" type="button">閉じる <kbd>M</kbd></button></div></div>
+    <div class="stroll-menu" role="dialog" aria-modal="true" hidden><div class="stroll-panel"><p class="eyebrow"></p><h3></h3><div class="stroll-cards"></div><div class="stroll-actions"><button class="ghost-button stroll-cancel" type="button">やめる <kbd>Esc</kbd></button><a class="share-link" target="_blank" rel="noopener noreferrer" hidden>X でポスト</a></div></div></div>
+    <div class="stroll-map" role="dialog" aria-label="地図" hidden><div class="stroll-panel"><p class="eyebrow">MAP</p><h3>喫煙所めぐり</h3><div class="stroll-map-body"><canvas width="760" height="560"></canvas><ul class="stroll-list"></ul></div><p class="stroll-legend"><i class="done"></i>一服した　<i class="seen"></i>見つけた　<span>灰皿のある所で吸えます</span></p><div class="stroll-actions"><button class="ghost-button stroll-cancel" type="button">閉じる <kbd>M</kbd></button><a class="share-link" target="_blank" rel="noopener noreferrer" hidden>X でポスト</a></div></div></div>
     <div class="stroll-fade" aria-hidden="true"></div>`;
   container.append(root);
   const travel = createTravel(document.body);
@@ -360,6 +361,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
         return button;
       }),
     );
+    setPost(menu.querySelector(".share-link"), "");
     menu.hidden = false;
     renderPrompt();
   }
@@ -415,6 +417,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     renderPrompt();
     map.querySelector("h3").textContent = `${REGION_NAMES[world.region]}の地図`;
     drawMap();
+    setPost(map.querySelector(".share-link"), visited.size > 0 && POSTS.stroll({ visited: visited.size, total: spotCount }));
     // 喫煙所の一覧（まだ見つけていない所は伏せておく）
     const list = map.querySelector(".stroll-list");
     list.replaceChildren(
@@ -561,6 +564,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
       if (card.id === "stand") onLeaveSeat();
       else onSmoke(spot, card.id);
     });
+    setPost(menu.querySelector(".share-link"), POSTS.spot({ name: spot.name, visited: visited.size, total: spotCount }));
   }
 
   /* ---------------- 入力・毎フレーム ---------------- */
