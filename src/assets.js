@@ -50,27 +50,40 @@ const ANISOTROPY = 8;
 const models = {};
 const images = {};
 
+// 最初は要らない物（お邪魔の人）。遊び始めてから裏で読む
+const LATER = ["ojisan", "salaryman"];
+const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+
+async function loadModel(name) {
+  const { scene } = await gltf.loadAsync(MODEL_URLS[name]);
+  scene.updateMatrixWorld(true);
+  scene.traverse((object) => {
+    if (!object.isMesh) return;
+    object.castShadow = true;
+    for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap"]) {
+      if (object.material[key]) object.material[key].anisotropy = ANISOTROPY;
+    }
+  });
+  models[name] = scene;
+}
+
+// お邪魔の人などを、あとから読む
+export async function loadLater() {
+  await Promise.all(LATER.filter((name) => !models[name]).map(loadModel));
+}
+
 export async function loadAssets(onProgress = () => {}) {
-  const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const loader = new THREE.TextureLoader();
-  const total = Object.keys(MODEL_URLS).length + Object.keys(IMAGE_URLS).length;
+  const first = Object.keys(MODEL_URLS).filter((name) => !LATER.includes(name));
+  const total = first.length + Object.keys(IMAGE_URLS).length;
   let done = 0;
   const step = () => {
     done += 1;
     onProgress(done / total);
   };
   await Promise.all([
-    ...Object.entries(MODEL_URLS).map(async ([name, url]) => {
-      const { scene } = await gltf.loadAsync(url);
-      scene.updateMatrixWorld(true);
-      scene.traverse((object) => {
-        if (!object.isMesh) return;
-        object.castShadow = true;
-        for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap"]) {
-          if (object.material[key]) object.material[key].anisotropy = ANISOTROPY;
-        }
-      });
-      models[name] = scene;
+    ...first.map(async (name) => {
+      await loadModel(name);
       step();
     }),
     ...Object.entries(IMAGE_URLS).map(async ([name, url]) => {

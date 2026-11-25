@@ -3,7 +3,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { AVATAR_URLS, loadAssets } from "./assets.js";
+import { AVATAR_URLS, loadAssets, loadLater } from "./assets.js";
 import { createAudio } from "./audio.js";
 import { CHILL_KEYS, DIFFICULTIES, FAIL_LINE, STRESS, STROLL_AFTER, STROLL_RULES, tremorOf, unlimitedRound } from "./rules.js";
 import { PLACES, PLACE_IDS } from "./places.js";
@@ -462,12 +462,19 @@ const moth = createMoth();
 scene.add(moth.group);
 const rain = createRain();
 scene.add(rain.object);
-// 横から話しかけてくる人
-const strangers = { ojisan: createStranger("ojisan"), salaryman: createStranger("salaryman") };
-Object.values(strangers).forEach((stranger) => {
-  stranger.add(scene);
-  stranger.setVisible(false);
-});
+// 横から話しかけてくる人（最初の画面には要らないので、裏で読んでから作る）
+const strangers = {};
+async function prepareStrangers() {
+  await loadLater();
+  for (const name of ["ojisan", "salaryman"]) {
+    if (strangers[name]) continue;
+    const stranger = createStranger(name);
+    stranger.add(scene);
+    stranger.setVisible(false);
+    strangers[name] = stranger;
+  }
+}
+setTimeout(() => prepareStrangers().catch(() => {}), 1200);
 
 /* ======================================================================
  * 状態

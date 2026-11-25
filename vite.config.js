@@ -5,6 +5,11 @@ import { defineConfig } from "vite";
 export default defineConfig({
   // どの URL の下に置いても動くように、相対パスで書き出す（スマホ用に Web へ置くとき）
   base: "./",
+  build: {
+    // three 本体は変わらないので別ファイルにして、更新してもキャッシュが効くようにする
+    rollupOptions: { output: { manualChunks: { three: ["three"] } } },
+    chunkSizeWarningLimit: 800,
+  },
   optimizeDeps: {
     include: [
       "three",
