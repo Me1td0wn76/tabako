@@ -15,6 +15,7 @@ export default defineConfig({
       "three/addons/loaders/GLTFLoader.js",
       "three/addons/geometries/RoundedBoxGeometry.js",
       "three/addons/utils/BufferGeometryUtils.js",
+      "three/addons/libs/meshopt_decoder.module.js",
     ],
   },
 });

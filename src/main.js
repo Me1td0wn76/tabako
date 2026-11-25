@@ -1063,7 +1063,7 @@ function buildTitle() {
     title: "ぶらり喫煙の旅",
     note: "街・キャンプ地・港・旅館を歩き、灰皿のある所で一服する。",
     limits: ["時間もお邪魔もなし", "喫煙所 16 か所"],
-    thumb: new URL("./assets/images/thumb_stroll.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_stroll.webp", import.meta.url).href,
     className: "mode-stroll",
   });
   ui.strollCard.id = "mode-stroll";

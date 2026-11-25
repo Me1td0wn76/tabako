@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 /*
  * ローカルの ComfyUI で作ったモデルと画像の読み込み（作り方は tools/assetgen/）。
@@ -22,25 +23,25 @@ const MODEL_URLS = {
 };
 
 const IMAGE_URLS = {
-  concrete: new URL("./assets/images/concrete.jpg", import.meta.url).href,
-  concreteNormal: new URL("./assets/images/concrete_n.jpg", import.meta.url).href,
-  wall: new URL("./assets/images/wall.jpg", import.meta.url).href,
-  wallNormal: new URL("./assets/images/wall_n.jpg", import.meta.url).href,
-  wood_dark: new URL("./assets/images/wood_dark.jpg", import.meta.url).href,
-  woodDarkNormal: new URL("./assets/images/wood_dark_n.jpg", import.meta.url).href,
-  wood_plank: new URL("./assets/images/wood_plank.jpg", import.meta.url).href,
-  woodPlankNormal: new URL("./assets/images/wood_plank_n.jpg", import.meta.url).href,
-  steel: new URL("./assets/images/steel.jpg", import.meta.url).href,
-  steelNormal: new URL("./assets/images/steel_n.jpg", import.meta.url).href,
-  matchbook: new URL("./assets/images/matchbook.jpg", import.meta.url).href,
-  wallpaper: new URL("./assets/images/wallpaper.jpg", import.meta.url).href,
+  concrete: new URL("./assets/images/concrete.webp", import.meta.url).href,
+  concreteNormal: new URL("./assets/images/concrete_n.webp", import.meta.url).href,
+  wall: new URL("./assets/images/wall.webp", import.meta.url).href,
+  wallNormal: new URL("./assets/images/wall_n.webp", import.meta.url).href,
+  wood_dark: new URL("./assets/images/wood_dark.webp", import.meta.url).href,
+  woodDarkNormal: new URL("./assets/images/wood_dark_n.webp", import.meta.url).href,
+  wood_plank: new URL("./assets/images/wood_plank.webp", import.meta.url).href,
+  woodPlankNormal: new URL("./assets/images/wood_plank_n.webp", import.meta.url).href,
+  steel: new URL("./assets/images/steel.webp", import.meta.url).href,
+  steelNormal: new URL("./assets/images/steel_n.webp", import.meta.url).href,
+  matchbook: new URL("./assets/images/matchbook.webp", import.meta.url).href,
+  wallpaper: new URL("./assets/images/wallpaper.webp", import.meta.url).href,
 };
 
 // 着信画面の顔写真（CSS の背景として使う）
 export const AVATAR_URLS = {
-  上司: new URL("./assets/images/avatar_boss.jpg", import.meta.url).href,
-  母: new URL("./assets/images/avatar_mother.jpg", import.meta.url).href,
-  大家さん: new URL("./assets/images/avatar_landlord.jpg", import.meta.url).href,
+  上司: new URL("./assets/images/avatar_boss.webp", import.meta.url).href,
+  母: new URL("./assets/images/avatar_mother.webp", import.meta.url).href,
+  大家さん: new URL("./assets/images/avatar_landlord.webp", import.meta.url).href,
 };
 
 const COLOR_IMAGES = new Set(["concrete", "wall", "wood_dark", "wood_plank", "steel", "matchbook", "wallpaper"]);
@@ -50,7 +51,7 @@ const models = {};
 const images = {};
 
 export async function loadAssets(onProgress = () => {}) {
-  const gltf = new GLTFLoader();
+  const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const loader = new THREE.TextureLoader();
   const total = Object.keys(MODEL_URLS).length + Object.keys(IMAGE_URLS).length;
   let done = 0;

@@ -12,7 +12,7 @@ export const PLACES = {
   balcony: {
     label: "ベランダ",
     note: "マンションの夕暮れ",
-    thumb: new URL("./assets/images/thumb_balcony.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_balcony.webp", import.meta.url).href,
     surface: { image: "wood_plank", color: "#b98f64", roughness: 0.65 },
     shadow: true,
     outdoor: 1,
@@ -23,7 +23,7 @@ export const PLACES = {
   konbini: {
     label: "コンビニ前",
     note: "夜の喫煙所",
-    thumb: new URL("./assets/images/thumb_konbini.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_konbini.webp", import.meta.url).href,
     surface: { image: "steel", color: "#9aa0a6", roughness: 0.42, metalness: 0.6 },
     shadow: false,
     outdoor: 1,
@@ -34,7 +34,7 @@ export const PLACES = {
   rooftop: {
     label: "ビルの屋上",
     note: "風の強い夜",
-    thumb: new URL("./assets/images/thumb_rooftop.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_rooftop.webp", import.meta.url).href,
     surface: { image: "wood_plank", color: "#84766a", roughness: 0.85 },
     shadow: true,
     outdoor: 1,
@@ -45,7 +45,7 @@ export const PLACES = {
   kissaten: {
     label: "純喫茶",
     note: "喫煙席・テーブル",
-    thumb: new URL("./assets/images/thumb_kissaten.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_kissaten.webp", import.meta.url).href,
     surface: { image: "wood_dark", color: "#c09a76", roughness: 0.4 },
     shadow: false,
     outdoor: 0,
@@ -56,7 +56,7 @@ export const PLACES = {
   camp: {
     label: "キャンプ場",
     note: "湖と焚き火",
-    thumb: new URL("./assets/images/thumb_camp.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_camp.webp", import.meta.url).href,
     surface: { image: "wood_plank", color: "#a08464", roughness: 0.85 },
     shadow: true,
     outdoor: 0.75,
@@ -68,7 +68,7 @@ export const PLACES = {
   harbor: {
     label: "港の防波堤",
     note: "明け方の海",
-    thumb: new URL("./assets/images/thumb_harbor.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_harbor.webp", import.meta.url).href,
     surface: { image: "steel", color: "#c8ced4", roughness: 0.6 },
     shadow: true,
     outdoor: 1,
@@ -79,7 +79,7 @@ export const PLACES = {
   engawa: {
     label: "温泉宿の縁側",
     note: "雪の庭",
-    thumb: new URL("./assets/images/thumb_engawa.jpg", import.meta.url).href,
+    thumb: new URL("./assets/images/thumb_engawa.webp", import.meta.url).href,
     surface: { image: "wood_dark", color: "#4a2c24", roughness: 0.3 },
     shadow: true,
     outdoor: 0.75,

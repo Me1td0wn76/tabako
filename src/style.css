@@ -38,7 +38,7 @@ body {
   background:
     linear-gradient(90deg, rgba(8, 12, 16, 0.82) 0%, rgba(8, 12, 16, 0.5) 48%, rgba(8, 12, 16, 0.12) 100%),
     linear-gradient(180deg, transparent 70%, rgba(8, 12, 16, 0.85) 100%),
-    url("./assets/images/title.jpg") right center / cover no-repeat fixed,
+    url("./assets/images/title.webp") right center / cover no-repeat fixed,
     var(--bg);
 }
 
@@ -1435,7 +1435,7 @@ h2 {
   border-radius: 34px;
   background:
     linear-gradient(180deg, rgba(8, 12, 30, 0.1) 35%, rgba(8, 12, 30, 0.62) 100%),
-    #0e1424 url("./assets/images/wallpaper.jpg") center / cover;
+    #0e1424 url("./assets/images/wallpaper.webp") center / cover;
   color: #fff;
 }
 

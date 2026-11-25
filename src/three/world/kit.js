@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
@@ -138,38 +139,38 @@ const MODEL_URLS = {
 };
 
 const IMAGE_URLS = {
-  facade: new URL("../../assets/images/facade.jpg", import.meta.url).href,
-  facade2: new URL("../../assets/images/facade2.jpg", import.meta.url).href,
-  asphalt: new URL("../../assets/images/asphalt.jpg", import.meta.url).href,
-  forest: new URL("../../assets/images/forest.jpg", import.meta.url).href,
-  plaster: new URL("../../assets/images/plaster.jpg", import.meta.url).href,
-  snow: new URL("../../assets/images/snow.jpg", import.meta.url).href,
-  concrete: new URL("../../assets/images/concrete.jpg", import.meta.url).href,
-  wood_dark: new URL("../../assets/images/wood_dark.jpg", import.meta.url).href,
-  wood_plank: new URL("../../assets/images/wood_plank.jpg", import.meta.url).href,
-  steel: new URL("../../assets/images/steel.jpg", import.meta.url).href,
-  bark: new URL("../../assets/images/bark.jpg", import.meta.url).href,
-  panel: new URL("../../assets/images/panel.jpg", import.meta.url).href,
-  stained: new URL("../../assets/images/stained.jpg", import.meta.url).href,
-  goods: new URL("../../assets/images/goods.jpg", import.meta.url).href,
-  fridge: new URL("../../assets/images/fridge.jpg", import.meta.url).href,
-  roofdeck: new URL("../../assets/images/roofdeck.jpg", import.meta.url).href,
-  quay: new URL("../../assets/images/quay.jpg", import.meta.url).href,
-  brickwall: new URL("../../assets/images/brickwall.jpg", import.meta.url).href,
-  shopa: new URL("../../assets/images/shopa.jpg", import.meta.url).href,
-  shopb: new URL("../../assets/images/shopb.jpg", import.meta.url).href,
-  shopc: new URL("../../assets/images/shopc.jpg", import.meta.url).href,
-  shopd: new URL("../../assets/images/shopd.jpg", import.meta.url).href,
-  shutter: new URL("../../assets/images/shutter.jpg", import.meta.url).href,
-  paving: new URL("../../assets/images/paving.jpg", import.meta.url).href,
-  tatami: new URL("../../assets/images/tatami.jpg", import.meta.url).href,
-  kawara: new URL("../../assets/images/kawara.jpg", import.meta.url).href,
-  grassland: new URL("../../assets/images/grassland.jpg", import.meta.url).href,
-  facade3: new URL("../../assets/images/facade3.jpg", import.meta.url).href,
-  facade4: new URL("../../assets/images/facade4.jpg", import.meta.url).href,
+  facade: new URL("../../assets/images/facade.webp", import.meta.url).href,
+  facade2: new URL("../../assets/images/facade2.webp", import.meta.url).href,
+  asphalt: new URL("../../assets/images/asphalt.webp", import.meta.url).href,
+  forest: new URL("../../assets/images/forest.webp", import.meta.url).href,
+  plaster: new URL("../../assets/images/plaster.webp", import.meta.url).href,
+  snow: new URL("../../assets/images/snow.webp", import.meta.url).href,
+  concrete: new URL("../../assets/images/concrete.webp", import.meta.url).href,
+  wood_dark: new URL("../../assets/images/wood_dark.webp", import.meta.url).href,
+  wood_plank: new URL("../../assets/images/wood_plank.webp", import.meta.url).href,
+  steel: new URL("../../assets/images/steel.webp", import.meta.url).href,
+  bark: new URL("../../assets/images/bark.webp", import.meta.url).href,
+  panel: new URL("../../assets/images/panel.webp", import.meta.url).href,
+  stained: new URL("../../assets/images/stained.webp", import.meta.url).href,
+  goods: new URL("../../assets/images/goods.webp", import.meta.url).href,
+  fridge: new URL("../../assets/images/fridge.webp", import.meta.url).href,
+  roofdeck: new URL("../../assets/images/roofdeck.webp", import.meta.url).href,
+  quay: new URL("../../assets/images/quay.webp", import.meta.url).href,
+  brickwall: new URL("../../assets/images/brickwall.webp", import.meta.url).href,
+  shopa: new URL("../../assets/images/shopa.webp", import.meta.url).href,
+  shopb: new URL("../../assets/images/shopb.webp", import.meta.url).href,
+  shopc: new URL("../../assets/images/shopc.webp", import.meta.url).href,
+  shopd: new URL("../../assets/images/shopd.webp", import.meta.url).href,
+  shutter: new URL("../../assets/images/shutter.webp", import.meta.url).href,
+  paving: new URL("../../assets/images/paving.webp", import.meta.url).href,
+  tatami: new URL("../../assets/images/tatami.webp", import.meta.url).href,
+  kawara: new URL("../../assets/images/kawara.webp", import.meta.url).href,
+  grassland: new URL("../../assets/images/grassland.webp", import.meta.url).href,
+  facade3: new URL("../../assets/images/facade3.webp", import.meta.url).href,
+  facade4: new URL("../../assets/images/facade4.webp", import.meta.url).href,
 };
 
-const gltf = new GLTFLoader();
+const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const textures = new THREE.TextureLoader();
 const models = new Map();
 const images = new Map();
@@ -182,6 +183,7 @@ function loadModel(name) {
         if (object.isMesh) mesh = object;
       });
       if (mesh.material.map) mesh.material.map.anisotropy = 4;
+      restore(mesh);
       mesh.geometry.computeBoundingBox();
       return { geometry: mesh.geometry, material: mesh.material, height: mesh.geometry.boundingBox.max.y };
     });
@@ -189,6 +191,16 @@ function loadModel(name) {
     models.set(name, promise);
   }
   return models.get(name);
+}
+
+// 圧縮のために縮めてある位置を、元の寸法へ戻す
+function restore(mesh) {
+  mesh.updateWorldMatrix(true, false);
+  const { position } = mesh.geometry.attributes;
+  const point = new THREE.Vector3();
+  const out = new Float32Array(position.count * 3);
+  for (let i = 0; i < position.count; i += 1) point.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld).toArray(out, i * 3);
+  mesh.geometry.setAttribute("position", new THREE.BufferAttribute(out, 3));
 }
 
 function loadImage(name) {
