@@ -34,7 +34,7 @@ const LOOKS = {
   lake: {
     sky: { top: "#040818", horizon: "#1a2c52", below: "#0a1020", glow: "#142238", cloud: "#18233c", sun: "#000000", stars: 1.2, milky: 1.2, clouds: 0, height: 0.5 },
     sunAt: [0, -0.03, 1],
-    light: { sky: ["#8aa4dc", "#403c38", 1.8], moon: ["#a8bef0", 2.3, [0.5, 0.8, 0.4]] },
+    light: { sky: ["#8aa4dc", "#48443e", 2.5], moon: ["#a8bef0", 2.3, [0.5, 0.8, 0.4]] },
     fog: ["#0c1424", 0.006],
     reflect: 1.1,
     outdoor: 0.7,

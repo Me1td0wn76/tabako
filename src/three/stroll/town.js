@@ -111,7 +111,7 @@ function streets(kit, random) {
 function blocks(kit, random) {
   const B = (x0, x1, z0, z1, h) => ({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h });
   facades(kit, "facade3", [B(-25.4, -18, 7.4, 18, 10.5), B(13.6, 21, 7.4, 18, 13.5), B(31.4, 40, 7.4, 16.8, 16.5), B(-62, -48, -20, -7.4, 16.5), B(-32, -22, 21, 35.5, 9), B(7, 18, 20, 34, 9), B(50, 62, 18, 34, 15), B(-60, -46, 41, 57, 12), B(31, 44, 43, 57, 12)], { tile: [16, 15], glow: 0.9, gain: 1.15, threshold: 0.62, seed: 2 });
-  facades(kit, "facade4", [B(-33, -26, 7.4, 17.4, 8.4), B(6.2, 13, 7.4, 17.6, 9.2), B(21.6, 30.6, 7.4, 17, 8.2), B(-11.6, -6.2, -18, -7.4, 8), B(-20, -7, 21, 35.5, 12), B(20, 33, 20, 34, 11.5), B(-32, -20, 43, 57, 8.5), B(47, 62, 43, 57, 14), { ...B(-15.6, -8.6, 7.4, 18.9, 6.4), y: 2.95 }], { tile: [18, 15], glow: 1.2, gain: 2.6, seed: 5 });
+  facades(kit, "facade4", [B(-33, -26, 7.4, 17.4, 8.4), B(6.2, 13, 7.4, 17.6, 9.2), B(21.6, 30.6, 7.4, 17, 8.2), B(-11.6, -6.2, -18, -7.4, 8), B(-20, -7, 21, 35.5, 12), B(20, 33, 20, 34, 11.5), B(-32, -20, 43, 57, 8.5), B(47, 62, 43, 57, 14), { ...B(-15.6, -8.6, 7.4, 18.9, 6.4), y: 2.95 }], { tile: [18, 15], glow: 0.75, gain: 2.4, seed: 5 });
   facades(kit, "facade", [B(41, 50, 7.4, 17, 11), B(36, 48, 18.4, 34, 9), B(-18, -7, 43, 57, 10.5)], { tile: [24, 24], glow: 1.1, gain: 1.7, seed: 7 });
   facades(kit, "facade2", [B(51, 62, 7.4, 17, 21), { x: 23, z: -20.1, w: 26.6, d: 21.4, h: 29.9 }], { tile: [24, 24], glow: 1.1, gain: 1.3, seed: 9 });
   // 店先
@@ -167,7 +167,7 @@ function furniture(kit, random) {
   kit.scatter("tree", [[-50, 6.2], [-29, 6.2], [-21.6, 6.2], [17.4, 6.2], [35.6, 6.2], [46, 6.2], [55, 6.2], [-53, -6.2], [40, -6.2], [46, -6.2], [28, -8.6], [17, -8.6], [44, -26], [60, -26], [52, -27]].map(([x, z]) => ({ position: [x, 0.1, z], yaw: random() * TAU, height: 4.2 + random() * 1.2 })), { color: "#8b957f" });
   for (const [x, z] of [[-7.2, -4.8], [7.2, 4.8], [-4.8, 7.2], [4.8, -7.2]]) {
     const yaw = Math.abs(x) > Math.abs(z) ? (x < 0 ? Math.PI / 2 : -Math.PI / 2) : z > 0 ? Math.PI : 0;
-    kit.put("signal", [x, 0.12, z], { height: 4.4, yaw, glow: 0.6, threshold: 0.5 });
+    kit.put("signal", [x, 0.12, z], { height: 3.5, yaw, glow: 0.6, threshold: 0.5 });
   }
   kit.put("mailbox", [5.0, 0.12, 8.6], { yaw: -0.4 });
   kit.put("phonebooth", [-31.8, 0.12, 5.0], { yaw: 0, glow: 0.3, threshold: 0.6 });
@@ -519,7 +519,7 @@ function outskirts(kit, random) {
   cottages(kit, rows, { walls: ["#7d7684", "#675f70", "#8a7f86"], lit: 0.55, seed: 3 });
   const ring = (x, z) => Math.abs(z) < 26 || (Math.abs(x) < 24 && z < 0);
   kit.towers({ count: 60, area: { x: [-150, 150], z: [124, 190] }, base: -9, height: [8, 24], width: [10, 16], image: "facade", seed: 7, glow: 0.95, gain: 1.8, kinds: 4 });
-  kit.towers({ count: 60, area: { x: [-260, 260], z: [190, 350] }, base: -9, height: [16, 74], width: [14, 26], image: "facade2", seed: 23, glow: 1.0, gain: 1.4, kinds: 4 });
+  kit.towers({ count: 60, area: { x: [-260, 260], z: [210, 360] }, base: -9, height: [14, 58], width: [14, 26], image: "facade2", seed: 23, glow: 1.0, gain: 1.4, kinds: 4 });
   kit.towers({ count: 40, area: { x: [-190, 190], z: [-200, -70] }, base: 0, height: [8, 26], width: [10, 18], image: "facade", seed: 17, glow: 1.0, gain: 1.7, avoid: ring, kinds: 4 });
   kit.towers({ count: 24, area: { x: [-150, -84], z: [30, 58] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 19, glow: 1.0, gain: 1.7, kinds: 3 });
   kit.towers({ count: 24, area: { x: [84, 150], z: [34, 58] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 29, glow: 1.0, gain: 1.7, kinds: 3 });

@@ -15,7 +15,7 @@ export const INN = {
   id: "inn",
   name: "雪見の宿",
   x: [-50, 50],
-  z: [-236, -122],
+  z: [-236, -98],
   models: [...new Set([...ENGAWA.models, "wagasa", "kotatsu", "ikebana", "bench", "busstop", "car", "npc_okami", "cat", "lantern"])],
   images: [...new Set([...ENGAWA.images, "tatami", "kawara", "wood_plank", "plaster", "concrete"])],
 };
