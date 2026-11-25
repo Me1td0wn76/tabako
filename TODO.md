@@ -8,7 +8,7 @@
 - [ ] どの記録で渡すかを決める（ランク S〜D / 難易度別 / 自己ベスト更新 など）
 - [ ] 受け取った特典を保存する（今のベスト記録と同じく localStorage）
 
-今ある材料：難易度ごとのベストタイム（`windproof-best-v5-*`）と、60 秒以内にクリアした難易度（`windproof-cleared-v5`）。
+今ある材料：難易度ごとのベストタイム（`windproof-best-v5-*`）、クリアした難易度（`windproof-cleared-v5`）、チャレンジの最高本数（`windproof-unlimited-best`）。
 
 ## ガチャと銘柄
 
