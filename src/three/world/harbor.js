@@ -104,7 +104,7 @@ export function harborSet(kit) {
   });
   kit.box([60, 2.0, 4], [36, -0.6, -92], wall, [0, -0.06, 0]);
   const blocks = [];
-  for (let i = 0; i < 74; i += 1) blocks.push({ position: [-84 + i * 0.95 + random(), -2.0 + random() * 1.0, -45.4 + random() * 2.4 - (i / 74) * 0.6 - (i * 0.95 - 34) * 0.155], yaw: random() * TAU, scale: 0.8 + random() * 0.5 });
+  for (let i = 0; i < 66; i += 1) blocks.push({ position: [-84 + i * 0.95 + random(), -2.0 + random() * 1.0, -45.4 + random() * 2.4 - (i / 74) * 0.6 - (i * 0.95 - 34) * 0.155], yaw: random() * TAU, scale: 0.8 + random() * 0.5 });
   kit.scatter("tetrapod", blocks);
   // 左手前の消波ブロック
   kit.scatter("tetrapod", [[-6.5, -5.0], [-7.9, -5.8], [-9.4, -4.9], [-8.8, -7.4], [-11.4, -6.4], [-10.4, -8.6], [-13.4, -5.6], [-12.8, -8.4]].map(([x, z]) => ({ position: [x, -1.7 + random() * 0.4, z], yaw: random() * TAU, scale: 1.0 + random() * 0.3 })));
