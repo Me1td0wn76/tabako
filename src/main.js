@@ -1984,12 +1984,15 @@ async function startStroll() {
   ui.startButton.disabled = true;
   ui.startLabel.textContent = "旅の支度をしています…";
   currentPlace.id = "stroll";
+  // 光る物（スマホの画面など）の数が途中で変わると、描く準備をやり直すことになるので、先に片付けておく
+  phone.group.visible = false;
+  setHandsVisible(false);
   try {
     if (!(await stroll.enter())) return;
   } catch (error) {
     console.error(error);
     toast("地図を読み込めなかった。もう一度試して", "danger");
-    stroll.leave();
+    leaveStroll();
     return;
   } finally {
     ui.startButton.disabled = false;
