@@ -1,27 +1,22 @@
 import * as THREE from "three";
-import { EYE, LIGHT_MODE, SCALE, createKit } from "../world/kit.js";
+import { EYE, LIGHT_MODE, SCALE, assetUrls, createKit, preloadAssets } from "../world/kit.js";
 import { createSolids, createWalker } from "./physics.js";
-import { INN, buildInn } from "./inn.js";
-import { LAKE, buildLake } from "./lake.js";
-import { PORT, buildPort } from "./port.js";
-import { ROADS, buildRoads } from "./roads.js";
-import { TOWN, buildTown } from "./town.js";
+import { INN } from "./inn.js";
+import { LAKE } from "./lake.js";
+import { PORT } from "./port.js";
+import { TOWN } from "./town.js";
 
 /*
- * 「ぶらり喫煙の旅」の地図。4 つの土地（街・キャンプ地・港・旅館）を道でつないである。
- *   root  地図の根（実寸の SCALE 倍）。歩くときは動かさず、カメラが動く
+ * 「ぶらり喫煙の旅」の地図。土地（街・キャンプ地・港・旅館）は 1 つずつ開く。
+ *   root      地図の根（実寸の SCALE 倍）。歩くときは動かさず、カメラが動く
  *   stance()  煙草を吸うときは、座る所の目の位置がいつもの視点に重なるように、地図のほうを動かす
- * 土地は近づいたら読み込み、離れたら隠す。灯りは近いものだけを使い回す。
+ * 土地は「部品」に分けてある。着いた所のまわり（core）だけ先に組み立て、残りは歩いている間に裏で足していく。
+ * ほかの土地の素材は、手が空いたときに少しずつ取っておく。
  */
 
-const REGIONS = [
-  { ...TOWN, build: buildTown },
-  { ...LAKE, build: buildLake },
-  { ...PORT, build: buildPort },
-  { ...INN, build: buildInn },
-];
+const REGIONS = { town: TOWN, lake: LAKE, port: PORT, inn: INN };
 
-// 土地ごとの空と光。境目の道では、混ぜて移り変わる
+// 土地ごとの空と光
 const LOOKS = {
   town: {
     sky: { top: "#232a6a", horizon: "#c07a90", below: "#2a2238", glow: "#5a3424", cloud: "#6a4a80", sun: "#8a4630", stars: 0.2, milky: 0, clouds: 0.65, height: 0.4 },
@@ -56,30 +51,35 @@ const LOOKS = {
     outdoor: 0.6,
   },
 };
-const LOOK_IDS = Object.keys(LOOKS);
 
 const LIGHTS = LIGHT_MODE ? 4 : 8;
-const VIEW = 26; // 土地の端からこの距離まで離れたら隠す
-const LOAD = 62; // 読み込みはじめる距離
 const SHADOW_STEP = 5; // これだけ歩いたら、影を描き直す
 
-export function createStrollWorld({ scene, renderer, capture }) {
+// 画面の動きを止めないための、ひと息
+export const breathe = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+const idle = () => new Promise((resolve) => (window.requestIdleCallback ? window.requestIdleCallback(resolve, { timeout: 1200 }) : setTimeout(resolve, 120)));
+
+export function createStrollWorld({ scene, camera, renderer, capture }) {
   const root = new THREE.Group();
   root.scale.setScalar(SCALE);
   root.visible = false;
   scene.add(root);
 
-  const solids = createSolids();
+  // いま開いている土地
+  let region = null; // "town" など
+  let ticket = 0; // 開き直したら、前の読み込みは捨てる
+  let solids = createSolids();
   const areas = [];
   const spots = [];
   const portals = [];
   const stops = [];
-  const walker = createWalker(solids, areas);
-  const zones = []; // 近づいたときだけ表示するまとまり
+  const zones = [];
   const emitters = [];
-  const loaded = new Map(); // 土地 → Promise
-  const ready = new Map(); // 土地 → kit
-  let base = null; // 空・道（いつもある物）
+  let parts = []; // { kit, near }
+  let pending = 0; // 裏で読み込み中の部品の数
+  const walker = createWalker(() => solids, areas);
+  const atlas = new Map(); // これまでに見た喫煙所（地図用）
+  let dome = null;
   let stance = null;
   let time = 0;
 
@@ -102,25 +102,31 @@ export function createStrollWorld({ scene, renderer, capture }) {
   scene.add(handLamp, handFill);
   const ownLights = [hemi, handLamp, handFill];
 
+  // 灯りは近いものだけを使い回す（数を変えないので、描画の準備をやり直さなくてすむ）
   const pool = Array.from({ length: LIGHTS }, () => {
     const light = new THREE.PointLight("#fff", 0, 10, 1.6);
     root.add(light);
-    return { light, emitter: null, level: 0 };
+    return { light, emitter: null, level: 0, leaving: false };
   });
-  const distanceTo = (emitter) => Math.hypot(emitter.at.x - walker.body.x, emitter.at.y - walker.body.y - 1.2, emitter.at.z - walker.body.z);
 
   function updateLights(delta) {
     const list = [];
+    const { x, y, z } = walker.body;
     for (const emitter of emitters) {
-      if (!emitter.region.visible || emitter.zone?.visible === false) continue;
-      const d = distanceTo(emitter);
+      if (!emitter.group.visible || emitter.zone?.visible === false) continue;
+      const d = Math.hypot(emitter.at.x - x, emitter.at.y - y - 1.2, emitter.at.z - z);
       if (d > emitter.distance / SCALE + 16) continue;
       list.push([emitter.power / (d * d + 8), emitter]);
     }
     list.sort((a, b) => b[0] - a[0]);
     const wanted = new Set(list.slice(0, LIGHTS).map(([, emitter]) => emitter));
-    for (const slot of pool) if (slot.emitter && wanted.has(slot.emitter)) wanted.delete(slot.emitter);
-      else if (slot.emitter) slot.leaving = true;
+    for (const slot of pool) {
+      if (!slot.emitter) continue;
+      if (wanted.has(slot.emitter)) {
+        wanted.delete(slot.emitter);
+        slot.leaving = false;
+      } else slot.leaving = true;
+    }
     const waiting = [...wanted];
     for (const slot of pool) {
       if (slot.leaving) {
@@ -143,65 +149,36 @@ export function createStrollWorld({ scene, renderer, capture }) {
 
   /* ---------------- 空と霞 ---------------- */
 
-  const weights = { town: 1, lake: 0, port: 0, inn: 0 };
-  const smooth = THREE.MathUtils.smoothstep;
-  function updateWeights() {
-    const { x, z } = walker.body;
-    weights.lake = smooth(-x, 88, 150);
-    weights.port = smooth(x, 84, 136);
-    weights.inn = smooth(-z, 84, 124);
-    weights.town = Math.max(0, 1 - weights.lake - weights.port - weights.inn);
-  }
-  const color = new THREE.Color();
-  const mix = new THREE.Color();
-  const blend = (target, pick) => {
-    mix.setRGB(0, 0, 0);
-    for (const id of LOOK_IDS) if (weights[id]) mix.add(color.set(pick(LOOKS[id])).multiplyScalar(weights[id]));
-    target.copy(mix);
-  };
-  const number = (pick) => LOOK_IDS.reduce((sum, id) => sum + weights[id] * pick(LOOKS[id]), 0);
-  const direction = new THREE.Vector3();
-  let dome = null;
-  const fog = new THREE.Color();
-
-  function updateLook() {
-    const uniforms = dome.material.uniforms;
-    blend(uniforms.uTop.value, (look) => look.sky.top);
-    blend(uniforms.uHorizon.value, (look) => look.sky.horizon);
-    blend(uniforms.uBelow.value, (look) => look.sky.below);
-    blend(uniforms.uGlow.value, (look) => look.sky.glow);
-    blend(uniforms.uCloud.value, (look) => look.sky.cloud);
-    uniforms.uStars.value = number((look) => look.sky.stars);
-    uniforms.uMilky.value = number((look) => look.sky.milky);
-    uniforms.uClouds.value = number((look) => look.sky.clouds);
-    uniforms.uHeight.value = number((look) => look.sky.height);
-    const lead = dominant();
-    uniforms.uSun.value.set(...LOOKS[lead].sunAt).normalize();
-    uniforms.uSunColor.value.set(LOOKS[lead].sky.sun).multiplyScalar(Math.max(0, weights[lead] * 2 - 1));
-    blend(hemi.color, (look) => look.light.sky[0]);
-    blend(hemi.groundColor, (look) => look.light.sky[1]);
-    hemi.intensity = number((look) => look.light.sky[2]) * (inTunnel() ? 0.35 : 1);
-    blend(moon.color, (look) => look.light.moon[0]);
-    moon.intensity = number((look) => look.light.moon[1]) * (inTunnel() ? 0 : 1);
-    direction.set(0, 0, 0);
-    for (const id of LOOK_IDS) direction.addScaledVector(tmp.set(...LOOKS[id].light.moon[2]).normalize(), weights[id]);
-    moonDirection.copy(direction).normalize();
-    blend(fog, (look) => look.fog[0]);
-    scene.fog.color.copy(fog);
-    scene.background.copy(fog);
-    // 土地の境目では霞を濃くして、向こうの土地が消えるのを隠す
-    const between = 1 - Math.abs(weights[lead] * 2 - 1);
-    scene.fog.density = (number((look) => look.fog[1]) + between * 0.016) / SCALE;
-    scene.environmentIntensity = number((look) => look.reflect) * (inTunnel() ? 0.4 : 1);
-    place.outdoor = inTunnel() || indoors() ? 0 : number((look) => look.outdoor);
-  }
+  const place = { outdoor: 1, walking: true, surface: { image: "wood_plank", color: "#a08464", roughness: 0.8 } };
   const tmp = new THREE.Vector3();
   const moonDirection = new THREE.Vector3(0, 1, 0);
-  function dominant() {
-    return LOOK_IDS.reduce((best, id) => (weights[id] > weights[best] ? id : best), "town");
+
+  function applyLook() {
+    const look = LOOKS[region];
+    const uniforms = dome.material.uniforms;
+    uniforms.uTop.value.set(look.sky.top);
+    uniforms.uHorizon.value.set(look.sky.horizon);
+    uniforms.uBelow.value.set(look.sky.below);
+    uniforms.uGlow.value.set(look.sky.glow);
+    uniforms.uCloud.value.set(look.sky.cloud);
+    uniforms.uSunColor.value.set(look.sky.sun);
+    uniforms.uStars.value = look.sky.stars;
+    uniforms.uMilky.value = look.sky.milky;
+    uniforms.uClouds.value = look.sky.clouds;
+    uniforms.uHeight.value = look.sky.height;
+    uniforms.uSun.value.set(...look.sunAt).normalize();
+    hemi.color.set(look.light.sky[0]);
+    hemi.groundColor.set(look.light.sky[1]);
+    hemi.intensity = look.light.sky[2];
+    moon.color.set(look.light.moon[0]);
+    moon.intensity = look.light.moon[1];
+    moonDirection.set(...look.light.moon[2]).normalize();
+    scene.fog.color.set(look.fog[0]);
+    scene.background.set(look.fog[0]);
+    scene.fog.density = look.fog[1] / SCALE;
+    scene.environmentIntensity = look.reflect;
   }
-  const inTunnel = () => Math.abs(walker.body.x) < 4 && walker.body.z < -80 && walker.body.z > -126;
-  const indoors = () => areas.some((area) => area.indoor && walker.body.x > area.x[0] && walker.body.x < area.x[1] && walker.body.z > area.z[0] && walker.body.z < area.z[1] && Math.abs((typeof area.y === "function" ? 0 : area.y) - walker.body.y) < 0.6);
+  const indoors = () => areas.some((area) => area.indoor && walker.body.x > area.x[0] && walker.body.x < area.x[1] && walker.body.z > area.z[0] && walker.body.z < area.z[1] && Math.abs(area.y - walker.body.y) < 0.8);
 
   /* ---------------- 影 ---------------- */
 
@@ -218,20 +195,24 @@ export function createStrollWorld({ scene, renderer, capture }) {
     renderer.shadowMap.needsUpdate = true;
   }
 
-  /* ---------------- 土地 ---------------- */
+  /* ---------------- 土地を開く ---------------- */
 
-  const place = { outdoor: 1, walking: true, surface: { image: "wood_plank", color: "#a08464", roughness: 0.8 } };
-  const api = (region) => ({
+  const api = {
     root,
-    area: (area) => areas.push({ surface: "road", ...area, region: region.id }),
-    spot: (spot) => spots.push({ ...spot, region: region.id, seat: spot.seat ?? null }),
-    portal: (portal) => portals.push({ ...portal, region: region.id }),
-    stop: (stop) => stops.push({ ...stop, region: region.id }),
+    area: (area) => areas.push({ surface: "road", ...area }),
+    spot: (spot) => {
+      const entry = { ...spot, region, seat: spot.seat ?? null };
+      spots.push(entry);
+      atlas.set(entry.id, { id: entry.id, name: entry.name, region });
+    },
+    portal: (portal) => portals.push(portal),
+    stop: (stop) => stops.push(stop),
     // 近くにいるときだけ表示するまとまり。test(body) が true の間だけ見える
-    zone: (group, test) => zones.push({ group, test, region: region.id }),
-  });
+    zone: (group, test) => zones.push({ group, test }),
+  };
 
-  function adopt(region, kit) {
+  // 部品を地図に加える
+  function adopt(part, kit) {
     kit.shade();
     root.updateMatrixWorld(true);
     solids.collect(kit, root);
@@ -243,60 +224,149 @@ export function createStrollWorld({ scene, renderer, capture }) {
         while (node && node !== group) node = node.parent;
         return node === group;
       });
-      emitters.push({ ...emitter, at: tmp.clone(), region: kit.group, zone: zone?.group ?? null });
+      emitters.push({ ...emitter, at: tmp.clone(), group: kit.group, zone: zone?.group ?? null });
     });
+    parts.push({ kit, near: part.near ?? null });
+    shadowAt.x = 1e9;
   }
 
-  function ensure(id) {
-    if (!loaded.has(id)) {
-      const region = REGIONS.find((entry) => entry.id === id);
-      const promise = createKit({ models: region.models, images: region.images, parent: root }).then((kit) => {
-        region.build(kit, api(region));
-        adopt(region, kit);
-        ready.set(id, kit);
-        shadowAt.x = 1e9;
-        return kit;
+  // 描く準備（シェーダーと画像の転送）を、少しずつ済ませる
+  async function warm(kit) {
+    const textures = new Set();
+    kit.group.traverse((object) => {
+      const mat = object.material;
+      if (mat) for (const key of ["map", "bumpMap", "emissiveMap"]) if (mat[key]) textures.add(mat[key]);
+    });
+    let count = 0;
+    for (const texture of textures) {
+      renderer.initTexture(texture);
+      count += 1;
+      if (count % 4 === 0) await breathe();
+    }
+    await renderer.compileAsync?.(kit.group, camera, scene).catch(() => {});
+  }
+
+  async function loadPart(part, mine, onStep) {
+    const kit = await createKit({ models: part.models, images: part.images, parent: root, onStep });
+    if (mine !== ticket) {
+      kit.group.removeFromParent();
+      kit.release();
+      return null;
+    }
+    kit.group.visible = false;
+    await breathe();
+    part.build(kit, api);
+    adopt(part, kit);
+    await breathe();
+    await warm(kit);
+    if (mine !== ticket) return null;
+    kit.group.visible = true;
+    shadowAt.x = 1e9;
+    return kit;
+  }
+
+  function close() {
+    ticket += 1;
+    setStance(null);
+    parts.forEach(({ kit }) => {
+      kit.group.removeFromParent();
+      kit.release();
+    });
+    parts = [];
+    for (const list of [areas, spots, portals, stops, zones, emitters]) list.length = 0;
+    pool.forEach((slot) => Object.assign(slot, { emitter: null, level: 0, leaving: false }));
+    pool.forEach(({ light }) => {
+      light.intensity = 0;
+    });
+    solids = createSolids();
+    pending = 0;
+    region = null;
+  }
+
+  // 土地を開く。core が組み上がったら返る。onProgress(0〜1, 今していること)
+  async function open(id, onProgress = () => {}) {
+    close();
+    const mine = ticket;
+    region = id;
+    const definition = REGIONS[id];
+    const core = definition.parts.filter((part) => part.core);
+    const rest = definition.parts.filter((part) => !part.core);
+    if (!dome) {
+      const base = await createKit({ models: [], images: [], parent: root });
+      dome = base.sky({ top: "#232a6a", horizon: "#c07a90", stars: 1, milky: 0.01, clouds: 0.5, sun: [0, 0, 1] });
+      base.keep = true;
+      skyKit = base;
+    }
+    applyLook();
+    const total = core.reduce((sum, part) => sum + part.models.length + part.images.length, 0);
+    let done = 0;
+    for (const [index, part] of core.entries()) {
+      await loadPart(part, mine, () => {
+        done += 1;
+        onProgress(Math.min(0.96, (done / Math.max(1, total)) * 0.9 + (index / core.length) * 0.06), "道をつくっています");
       });
-      promise.catch(() => loaded.delete(id));
-      loaded.set(id, promise);
+      if (mine !== ticket) return false;
+      await breathe();
     }
-    return loaded.get(id);
+    onProgress(1, "まもなく到着します");
+    pending = rest.length;
+    streamRest(rest, mine);
+    return true;
+  }
+  let skyKit = null;
+
+  // 残りの部品を、歩いている間に 1 つずつ足す。終わったら、ほかの土地の素材も取っておく
+  async function streamRest(rest, mine) {
+    for (const part of rest) {
+      await idle();
+      if (mine !== ticket) return;
+      try {
+        await loadPart(part, mine);
+      } catch (error) {
+        console.error(error);
+      }
+      if (mine !== ticket) return;
+      pending -= 1;
+    }
+    const saving = navigator.connection?.saveData;
+    if (saving || LIGHT_MODE) return;
+    for (const other of Object.keys(REGIONS)) {
+      if (other === region) continue;
+      await prefetch(other, () => mine === ticket);
+    }
   }
 
-  async function prepare() {
-    if (!base) {
-      base = await createKit({ models: ROADS.models, images: ROADS.images, parent: root });
-      dome = base.sky({ top: "#232a6a", horizon: "#c07a90", stars: 1, milky: 0.01, clouds: 0.5, moon: null, sun: [0, 0, 1] });
-      buildRoads(base, api({ id: "roads" }));
-      adopt({ id: "roads" }, base);
+  // 素材のファイルだけを、少しずつ取っておく（ブラウザーのキャッシュに入る）
+  const fetched = new Set();
+  async function prefetch(id, alive = () => true) {
+    for (const part of REGIONS[id].parts) {
+      for (const url of assetUrls(part.models, part.images)) {
+        if (fetched.has(url)) continue;
+        await idle();
+        if (!alive()) return;
+        fetched.add(url);
+        await preloadAssets(url);
+      }
     }
-    await ensure("town");
   }
-
-  const outside = (region) => {
-    const { x, z } = walker.body;
-    return Math.hypot(Math.max(region.x[0] - x, 0, x - region.x[1]), Math.max(region.z[0] - z, 0, z - region.z[1]));
-  };
 
   /* ---------------- 毎フレーム ---------------- */
 
-  let lead = null;
   function update(delta, now, wind) {
     time = now;
-    if (!root.visible) return;
-    for (const region of REGIONS) {
-      const d = outside(region);
-      if (d < LOAD && !loaded.has(region.id)) ensure(region.id).catch(() => {});
-      const kit = ready.get(region.id);
-      if (!kit) continue;
-      const visible = d < VIEW;
-      if (visible !== kit.group.visible) {
-        kit.group.visible = visible;
-        shadowAt.x = 1e9;
+    if (!root.visible || !region || !dome) return;
+    skyKit.update(delta, now, wind);
+    const { x, y, z } = walker.body;
+    for (const { kit, near } of parts) {
+      if (near) {
+        const visible = Math.hypot(x - near.x, z - near.z) < near.r;
+        if (visible !== kit.group.visible) {
+          kit.group.visible = visible;
+          shadowAt.x = 1e9;
+        }
       }
-      if (visible) kit.update(delta, now, wind);
+      if (kit.group.visible) kit.update(delta, now, wind);
     }
-    base.update(delta, now, wind);
     for (const zone of zones) {
       const visible = zone.test(walker.body);
       if (visible !== zone.group.visible) {
@@ -304,20 +374,22 @@ export function createStrollWorld({ scene, renderer, capture }) {
         shadowAt.x = 1e9;
       }
     }
-    updateWeights();
-    updateLook();
     updateLights(delta);
-    dome.position.set(walker.body.x, walker.body.y + 1.5, walker.body.z);
+    place.outdoor = indoors() ? 0 : LOOKS[region].outdoor;
+    dome.position.set(x, y + 1.5, z);
     if (!stance) updateShadow();
-    // 土地が変わったら、写り込みを撮り直す
-    if (!stance && lead !== dominant()) {
-      lead = dominant();
-      capture(tmp.set(walker.body.x, walker.body.y + 1.6, walker.body.z).multiplyScalar(SCALE).clone());
-    }
+  }
+
+  // 着いたとき：写り込みを撮る
+  function arrive() {
+    applyLook();
+    capture(tmp.set(walker.body.x, walker.body.y + 1.6, walker.body.z).multiplyScalar(SCALE).clone());
+    shadowAt.x = 1e9;
   }
 
   // 煙草を吸う姿勢：座る所の目の位置を、いつもの視点に重ねる
   const eyeAt = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
   function setStance(spot) {
     stance = spot;
     place.walking = !spot;
@@ -346,20 +418,15 @@ export function createStrollWorld({ scene, renderer, capture }) {
       shadowAt.x = 1e9;
     }
     root.updateMatrixWorld(true);
-    updateShadow(true);
+    if (region) updateShadow(true);
   }
-  const up = new THREE.Vector3(0, 1, 0);
 
   function setVisible(visible) {
     root.visible = visible;
     ownLights.forEach((light) => {
       light.visible = visible;
     });
-    if (!visible) setStance(null);
-    else {
-      lead = null;
-      shadowAt.x = 1e9;
-    }
+    shadowAt.x = 1e9;
   }
   setVisible(false);
 
@@ -371,9 +438,13 @@ export function createStrollWorld({ scene, renderer, capture }) {
     spots,
     portals,
     stops,
+    areas,
+    atlas,
     regions: REGIONS,
-    prepare,
-    ensure,
+    open,
+    close,
+    prefetch,
+    arrive,
     update,
     setStance,
     setVisible,
@@ -381,16 +452,19 @@ export function createStrollWorld({ scene, renderer, capture }) {
     get stance() {
       return stance;
     },
+    get pending() {
+      return pending;
+    },
     // いまの場所（いつもの視点の座標での、机の上の位置）
     get spot() {
-      const spot = stance ?? spots[0];
+      const spot = stance ?? { eye: 1.5, table: { y: 1, item: [0, -1.2], phone: [0.2, -1.2], chillTray: [0, -1.2] } };
       const at = (x, z, y) => new THREE.Vector3(x, y - spot.eye, z).multiplyScalar(SCALE).add(EYE);
       const { y, tray, chillTray, item, phone } = spot.table;
       return { item: at(item[0], item[1], y), phone: at(phone[0], phone[1], y), tray: { challenge: at(...(tray ?? chillTray), y), chill: at(...chillTray, y) } };
     },
     get region() {
-      return dominant();
+      return region;
     },
-    cars: () => ready.get("town")?.cars,
+    cars: () => parts.find(({ kit }) => kit.cars)?.kit.cars,
   };
 }
