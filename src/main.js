@@ -1030,6 +1030,10 @@ function renderTitle() {
   // 選んだ場所を先に組み立てておく
   const nextPlace = state.mode === "chill" ? state.chillPlace : state.mode === "unlimited" ? unlimitedRound(0).place : DIFFICULTIES[state.difficulty].place;
   environment.preload(nextPlace).catch(() => {});
+  renderStartLabel();
+}
+
+function renderStartLabel() {
   if (state.mode === "chill") ui.startLabel.textContent = `${PLACES[state.chillPlace].label}で、まったり吸う`;
   else if (state.mode === "unlimited") ui.startLabel.textContent = "チャレンジを始める";
   else ui.startLabel.textContent = `${DIFFICULTIES[state.difficulty].label}（${TOOLS[DIFFICULTIES[state.difficulty].tool].label}）でスタート`;
@@ -1059,12 +1063,16 @@ async function enterPlace(id, begin) {
   const request = placeRequest;
   ui.startButton.disabled = true;
   try {
-    if (currentPlace.id !== id) await changePlace(id);
+    if (currentPlace.id !== id) {
+      ui.startLabel.textContent = `${PLACES[id].label}へ移動中…`;
+      await changePlace(id);
+    }
   } catch {
     toast("場所を読み込めなかった。もう一度試して", "danger");
     return;
   } finally {
     ui.startButton.disabled = false;
+    renderStartLabel();
   }
   if (request !== placeRequest) return;
   begin();

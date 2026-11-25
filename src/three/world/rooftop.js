@@ -36,9 +36,9 @@ export async function rooftop() {
   can(kit, [-0.46, 0.75, -1.56], { color: "#2a2d33", band: "#b9bec4" });
   can(kit, [0.5, 0.75, -1.62], { color: "#6d2a1e", band: "#d8b26a" });
   kit.put("pipechair", [-1.35, 0, -2.5], { yaw: 0.9 });
-  kit.put("pipechair", [2.05, 0, -3.3], { yaw: -0.8 });
-  kit.put("redcan", [1.16, 0, -2.75], { height: 0.46, yaw: 0.6 });
-  kit.steam({ at: [1.16, 0.46, -2.75], spread: [0.1, 0.1], count: 5, size: 0.06, grow: 0.3, rise: 0.8, opacity: 0.1, speed: 0.16, color: "#aab4c4" });
+  kit.put("pipechair", [2.35, 0, -3.5], { yaw: -0.8 });
+  kit.put("redcan", [1.4, 0, -2.85], { height: 0.46, yaw: 0.6 });
+  kit.steam({ at: [1.4, 0.46, -2.85], spread: [0.1, 0.1], count: 5, size: 0.06, grow: 0.3, rise: 0.8, opacity: 0.1, speed: 0.16, color: "#aab4c4" });
   kit.put("stool", [-2.3, 0, -3.5], { height: 0.45 });
   can(kit, [-2.3, 0.45, -3.5], { color: "#23384a", band: "#e0a64a" });
   kit.put("bench", [3.2, 0, -4.4], { yaw: -0.5 });
