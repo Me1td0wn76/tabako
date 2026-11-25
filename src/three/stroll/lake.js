@@ -28,7 +28,7 @@ export function buildLake(kit, api) {
     for (let i = 0; i < position.count; i += 1) position.setY(i, campGround(position.getX(i), position.getZ(i)));
     land.computeVertexNormals();
     kit.mesh(land, kit.material("forest", { repeat: [30, 25], color: "#9a9086", bump: 2 })).userData.noCast = true;
-    kit.water({ size: [300, 150], y: -0.42, position: [0, -88], deep: "#071022", shallow: "#34568f", sparkle: "#9fb6e0", glitter: 0.14, scale: 0.6, lights: [[[-0.9, 0.9, -3.1], "#ff8a3a"], [[2.6, 1.2, -5.2], "#ffb868"]] });
+    kit.water({ size: [300, 150], y: -0.42, position: [0, -88], deep: "#060d1c", shallow: "#25447a", sparkle: "#9fb6e0", glitter: 0.14, scale: 0.6, lights: [[[-0.9, 0.9, -3.1], "#ff8a3a"], [[2.6, 1.2, -5.2], "#ffb868"]] });
     ridges(kit, [{ z: -230, color: "#1b2a4a", height: 46, seed: 3 }, { z: -200, color: "#121f38", height: 28, seed: 8 }]);
     forest(kit, { count: 260, x: [-200, 200], z: [-190, -164], y: -0.6, height: [9, 20], color: "#0f1a22", seed: 3 });
     const clearing = (x, z) => Math.abs(x) < 6 && z > 20;
@@ -42,12 +42,16 @@ export function buildLake(kit, api) {
       trunk(kit, x, z, { radius: 0.22 + random() * 0.1, height: 11 + random() * 4, mat: bark, seed: 20 + i, y: y - 0.1 });
       kit.pillar(0.34, 4, [x, y, z]);
     });
-    kit.scatter("conifer", Array.from({ length: 22 }, (_, i) => {
-      const side = i % 2 ? -1 : 1;
-      const x = side * (13 + random() * 9);
-      const z = -6 + random() * 38;
-      return { position: [x, campGround(x, z) - 0.1, z], yaw: random() * TAU, scale: 0.8 + random() * 0.6 };
-    }), { color: "#465446" });
+    // 人の居る所には植えない
+    const taken = [[-12.6, 8.4, 6], [13.5, 16, 7], [9.6, 5.5, 4.5], [-9, -3, 6], [-10.5, 2, 5]];
+    const conifers = [];
+    for (let i = 0; conifers.length < 24 && i < 200; i += 1) {
+      const x = (random() < 0.5 ? -1 : 1) * (9 + random() * 14);
+      const z = -8 + random() * 42;
+      if (taken.some(([tx, tz, r]) => Math.hypot(x - tx, z - tz) < r)) continue;
+      conifers.push({ position: [x, campGround(x, z) - 0.1, z], yaw: random() * TAU, scale: 0.8 + random() * 0.6 });
+    }
+    kit.scatter("conifer", conifers, { color: "#5a6a5a" });
     kit.grass({ count: 1600, x: [-20, 20], z: [-11, 32], y: 0, height: [0.08, 0.24], color: ["#333f22", "#5c6638"], seed: 31, avoid: (x, z) => Math.abs(x) < 7 || Math.abs(x) > 9 + 4 });
     kit.pebbles({ count: 300, x: [-8, 8], z: [-1, 32], size: [0.012, 0.06], color: ["#4a443c", "#7d766a"], seed: 18 });
     kit.ground([4.4, 26], 0.03, kit.material("asphalt", { repeat: [1, 7], color: "#6d685f", roughness: 1 }), [0, 26]);

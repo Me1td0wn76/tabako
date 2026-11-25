@@ -67,7 +67,7 @@ export function buildPort(kit, api) {
     addSpot(kit, api, {
       id: "fishery",
       name: "番屋の前",
-      at: [13.4, 0, -12.6],
+      at: [14.8, 0, -20],
       yaw: Math.PI / 2,
       eye: 1.14,
       table: SEAT_STAND,
@@ -77,8 +77,8 @@ export function buildPort(kit, api) {
       seat: { model: "bench", at: [0, 0, 0.16], yaw: 0, height: 0.85 },
       build: () => standAshtray(kit, [0, -1.28], 0.72, { color: "#3a6a8c" }),
     });
-    kit.put("cat", [11.8, 0, -9.6], { yaw: 0.8 });
-    kit.put("cat", [12.6, 0, -10.2], { yaw: 2.6, color: "#c8c0b8" });
+    kit.put("cat", [13.0, 0, -21.6], { yaw: 0.8 });
+    kit.put("cat", [12.6, 0, -22.2], { yaw: 2.6, color: "#c8c0b8" });
     kit.put("vending", [18.4, 0, -10.6], { yaw: -Math.PI / 2, glow: 0.4, threshold: 0.85, scale: 0.95, color: "#b8d0f0" });
     kit.put("bicycle", [17.6, 0, -6.4], { height: 1.04, yaw: 0.3 });
 

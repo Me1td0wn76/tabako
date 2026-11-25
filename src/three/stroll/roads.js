@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { seeded } from "../world/kit.js";
+import { seeded, some } from "../world/kit.js";
 import { TAU, cottages, forest, streetLamp } from "../world/parts.js";
 import { guardrail, nameboard } from "./common.js";
 
@@ -7,7 +7,7 @@ import { guardrail, nameboard } from "./common.js";
  * 土地をつなぐ道。西：林道（キャンプ地へ）　東：海沿いの道（港へ）　北：峠のトンネル（旅館へ）
  */
 
-export const ROADS = { models: ["bush"], images: ["asphalt", "forest", "concrete", "brickwall", "grassland", "snow"] };
+export const ROADS = { models: ["bush", "conifer"], images: ["asphalt", "forest", "concrete", "brickwall", "grassland", "snow"] };
 
 export function buildRoads(kit, api) {
   const random = seeded(41);
@@ -26,8 +26,9 @@ export function buildRoads(kit, api) {
   guardrail(kit, [-66, 4.2], [-150, 4.2]);
   guardrail(kit, [-66, -4.2], [-150, -4.2]);
   for (const [x, z] of [[-74, 3.9], [-96, -3.9], [-118, 3.9], [-140, -3.9]]) streetLamp(kit, x, z, { height: 4.6, power: 7, reach: 12, color: "#ffd9a0", arm: 0.4 });
-  forest(kit, { count: 420, x: [-158, -70], z: [-58, -7], y: -0.2, height: [7, 14], color: "#1d2b24", seed: 3 });
-  forest(kit, { count: 420, x: [-158, -70], z: [7, 58], y: -0.2, height: [7, 14], color: "#1d2b24", seed: 4 });
+  forest(kit, { count: 380, x: [-158, -70], z: [-58, -15], y: -0.2, height: [7, 14], color: "#1d2b24", seed: 3 });
+  forest(kit, { count: 380, x: [-158, -70], z: [15, 58], y: -0.2, height: [7, 14], color: "#1d2b24", seed: 4 });
+  kit.scatter("conifer", Array.from({ length: some(34) }, (_, i) => ({ position: [-68 - (i >> 1) * 5.2 - random() * 3, -0.15, (i % 2 ? 1 : -1) * (7.6 + random() * 5)], yaw: random() * TAU, scale: 0.8 + random() * 0.6 })), { color: "#5a6a58" });
   nameboard(kit, "← 湖のキャンプ場", [-69, 2.2, -4.6], 0, { width: 2.6, height: 0.6, back: "#20543e" });
   kit.cylinder(0.05, 0.05, 2.2, [-69, 1.1, -4.7], white, undefined, undefined, 10);
   api.area({ x: [-156, -62], z: [-3.9, 3.9], y: 0.01, surface: "road" });
@@ -47,7 +48,7 @@ export function buildRoads(kit, api) {
   api.area({ x: [62, 146], z: [-3.9, 3.9], y: 0.01, surface: "road" });
 
   /* ---- 北のトンネル ---- */
-  kit.ground([7, 84], 0.006, asphalt, [0, -102]).userData.flat = true;
+  kit.ground([7, 70], 0.006, asphalt, [0, -95]).userData.flat = true;
   kit.ground([80, 22], -0.05, soil, [0, -72]);
   api.area({ x: [-3.2, 3.2], z: [-142, -60], y: 0.01, surface: "road" });
   guardrail(kit, [-4.4, -61], [-4.4, -79]);
@@ -57,7 +58,13 @@ export function buildRoads(kit, api) {
   nameboard(kit, "↑ 雪見の宿", [-4.9, 2.4, -63], 0, { width: 2.2, height: 0.6, back: "#5a2a24" });
   kit.cylinder(0.05, 0.05, 2.4, [-4.9, 1.2, -63.1], white, undefined, undefined, 10);
   // 山
-  const hill = kit.mesh(new THREE.SphereGeometry(1, 40, 18, 0, TAU, 0, Math.PI / 2), kit.material("forest", { repeat: [12, 5], color: "#4a5248", bump: 2 }), [0, -2, -103]);
+  const earth = kit.material("forest", { repeat: [12, 5], color: "#4a5248", bump: 2 });
+  // トンネルの通る所だけ、くり抜く
+  earth.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 vBore;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvBore = vec2(position.x * 80.0, position.y * 30.0 - 2.0);");
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec2 vBore;").replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\nif (abs(vBore.x) < 4.4 && vBore.y < 6.4) discard;");
+  };
+  const hill = kit.mesh(new THREE.SphereGeometry(1, 40, 18, 0, TAU, 0, Math.PI / 2), earth, [0, -2, -103]);
   hill.scale.set(80, 30, 21.6);
   hill.userData.far = true;
   const cones = [];
@@ -67,7 +74,7 @@ export function buildRoads(kit, api) {
     const z = t * 21.6;
     const inside = 1 - (x / 80) ** 2 - t * t;
     if (inside < 0.06) continue;
-    const h = 6 + random() * 6;
+    const h = 4.5 + random() * 4;
     cones.push({ position: [x, -2 + 30 * Math.sqrt(inside) - 0.6, -103 + z], yaw: random() * TAU, scale: [h * 0.32, h, h * 0.32], color: new THREE.Color(z < -6 ? "#9fb0c8" : "#26332b").offsetHSL(0, 0, random() * 0.04) });
   }
   const cone = new THREE.ConeGeometry(0.5, 1, 7);
@@ -95,8 +102,10 @@ export function buildRoads(kit, api) {
   nameboard(kit, "風見隧道", [0, 6.4, -79.86], 0, { width: 3, height: 0.7, back: "#3a3a38", glow: 0.15 });
   // 内壁
   const lining = kit.material("concrete", { repeat: [12, 1], color: "#8a8278", side: THREE.BackSide });
-  const arch = new THREE.CylinderGeometry(3.35, 3.35, 45, 24, 1, true, 0, Math.PI);
-  kit.mesh(arch, lining, [0, 2.4, -103.2], [Math.PI / 2, 0, Math.PI / 2 + Math.PI]).userData.noCast = true;
+  const arch = new THREE.CylinderGeometry(3.35, 3.35, 45.6, 24, 1, true, 0, Math.PI);
+  arch.rotateX(Math.PI / 2);
+  arch.rotateZ(Math.PI / 2);
+  kit.mesh(arch, lining, [0, 2.4, -103.2]).userData.noCast = true;
   const side = kit.material("concrete", { repeat: [12, 0.6], color: "#8a8278" });
   for (const x of [-3.5, 3.5]) kit.box([0.3, 2.5, 45], [x, 1.2, -103.2], side);
   for (let z = -84; z > -124; z -= 6.4) {

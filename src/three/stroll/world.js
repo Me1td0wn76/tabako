@@ -26,7 +26,7 @@ const LOOKS = {
   town: {
     sky: { top: "#232a6a", horizon: "#c07a90", below: "#2a2238", glow: "#5a3424", cloud: "#6a4a80", sun: "#8a4630", stars: 0.2, milky: 0, clouds: 0.65, height: 0.4 },
     sunAt: [0.2, -0.03, 1],
-    light: { sky: ["#8f97d4", "#4a4046", 1.25], moon: ["#e0a8b8", 1.2, [0.3, 0.5, 0.75]] },
+    light: { sky: ["#9aa2dc", "#5c5258", 1.75], moon: ["#e8b0bc", 1.5, [0.3, 0.5, 0.75]] },
     fog: ["#5a4262", 0.0034],
     reflect: 1.0,
     outdoor: 0.9,
@@ -34,7 +34,7 @@ const LOOKS = {
   lake: {
     sky: { top: "#040818", horizon: "#1a2c52", below: "#0a1020", glow: "#142238", cloud: "#18233c", sun: "#000000", stars: 1.2, milky: 1.2, clouds: 0, height: 0.5 },
     sunAt: [0, -0.03, 1],
-    light: { sky: ["#7f9ad4", "#33302c", 1.1], moon: ["#9fb6ea", 1.5, [0.5, 0.8, 0.4]] },
+    light: { sky: ["#8aa4dc", "#403c38", 1.8], moon: ["#a8bef0", 2.3, [0.5, 0.8, 0.4]] },
     fog: ["#0c1424", 0.006],
     reflect: 1.1,
     outdoor: 0.7,

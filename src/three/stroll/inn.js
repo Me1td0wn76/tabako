@@ -38,9 +38,14 @@ export function buildInn(kit, api) {
     localArea(kit, api, { x: [-15, 15], z: [-11, 50], y: innGround, surface: "snow", only: (x, z) => pondDepth(x, z) < -0.02 });
     const house = (x, z) => Math.abs(x) < 9 && z > -14 && z < 12;
     forest(kit, { count: 260, x: [-60, 60], z: [-58, -26], y: YARD + 1, height: [7, 15], color: "#2a3a52", seed: 9, snow: "#7f93b4" });
-    forest(kit, { count: 130, x: [-46, -17], z: [-26, 50], y: YARD + 0.6, height: [7, 14], color: "#2a3a52", seed: 19, snow: "#7f93b4", avoid: house });
-    forest(kit, { count: 130, x: [17, 46], z: [-26, 50], y: YARD + 0.6, height: [7, 14], color: "#2a3a52", seed: 29, snow: "#7f93b4", avoid: house });
+    forest(kit, { count: 130, x: [-48, -24], z: [-26, 50], y: YARD + 1.4, height: [7, 14], color: "#2a3a52", seed: 19, snow: "#7f93b4", avoid: house });
+    forest(kit, { count: 130, x: [24, 48], z: [-26, 50], y: YARD + 1.4, height: [7, 14], color: "#2a3a52", seed: 29, snow: "#7f93b4", avoid: house });
     ridges(kit, [{ z: -120, color: "#22344f", height: 34, seed: 4 }]);
+    kit.scatter("conifer", Array.from({ length: some(26) }, (_, i) => {
+      const x = (i % 2 ? 1 : -1) * (16.4 + random() * 6);
+      const z = -20 + random() * 68;
+      return { position: [x, innGround(x, z) - 0.1, z], yaw: random() * TAU, scale: 0.8 + random() * 0.5 };
+    }), { color: "#93a6bc" });
 
     /* ---- 縁側と庭 ---- */
     addSpot(kit, api, { id: "engawa", name: "旅館の縁側", at: [0, 0, 0], yaw: 0, eye: ENGAWA.eye, table: ENGAWA.spot, place: "engawa", seat: { model: "zabuton", at: [0, 0, 0.1], height: 0.1 }, build: () => engawaSet(kit) });

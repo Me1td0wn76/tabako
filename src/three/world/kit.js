@@ -716,7 +716,7 @@ export async function createKit({ eye = 1.5, models: modelNames, images: imageNa
     const random = seeded(Math.round(at[0] * 100 + at[2] * 37 + 500));
     const holder = current;
     const puffs = Array.from({ length: count }, () => {
-      const puff = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTexture(), color, transparent: true, opacity: 0, depthWrite: false }));
+      const puff = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTexture(), color, transparent: true, opacity: 0, depthWrite: false }));
       holder.add(puff);
       return { puff, offset: random() * 6, x: at[0] + (random() - 0.5) * spread[0], z: at[2] + (random() - 0.5) * spread[1], turn: random() * 6 };
     });
@@ -1015,6 +1015,17 @@ export async function createKit({ eye = 1.5, models: modelNames, images: imageNa
     onUpdate: (fn) => updates.push(fn),
     finish,
   };
+}
+
+let puffMap = null;
+function puffTexture() {
+  puffMap ??= paint(64, 64, (ctx, w) => {
+    const gradient = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+    for (let i = 0; i <= 10; i += 1) gradient.addColorStop(i / 10, `rgba(255,255,255,${((1 - i / 10) ** 2 * 0.85).toFixed(3)})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, w);
+  });
+  return puffMap;
 }
 
 let dotMap = null;

@@ -59,7 +59,7 @@ export function buildTown(kit, api) {
 /* ---------------- 道 ---------------- */
 
 function streets(kit, random) {
-  kit.ground([200, 200], 0, wet(kit.material("asphalt", { repeat: [30, 30], color: "#a2a4aa", roughness: 0.8, bump: 1 }), { scale: 0.4, amount: 0.34, dark: 0.35 }), [0, 0]);
+  kit.ground([200, 162], 0, wet(kit.material("asphalt", { repeat: [30, 24], color: "#b6b8be", roughness: 0.8, bump: 1 }), { scale: 0.4, amount: 0.34, dark: 0.35 }), [0, -20]);
   const paving = kit.material("paving", { repeat: [1, 1], color: "#b9b6b4", roughness: 0.9, bump: 0.6 });
   const slabs = [];
   const slab = (x0, x1, z0, z1) => {
@@ -111,7 +111,7 @@ function streets(kit, random) {
 function blocks(kit, random) {
   const B = (x0, x1, z0, z1, h) => ({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h });
   facades(kit, "facade3", [B(-25.4, -18, 7.4, 18, 10.5), B(13.6, 21, 7.4, 18, 13.5), B(31.4, 40, 7.4, 16.8, 16.5), B(-62, -48, -20, -7.4, 16.5), B(-32, -22, 21, 35.5, 9), B(7, 18, 20, 34, 9), B(50, 62, 18, 34, 15), B(-60, -46, 41, 57, 12), B(31, 44, 43, 57, 12)], { tile: [16, 15], glow: 0.9, gain: 1.15, threshold: 0.62, seed: 2 });
-  facades(kit, "facade4", [B(-33, -26, 7.4, 17.4, 8.4), B(6.2, 13, 7.4, 17.6, 9.2), B(21.6, 30.6, 7.4, 17, 8.2), B(-11.6, -6.2, -18, -7.4, 8), B(-20, -7, 21, 35.5, 12), B(20, 33, 20, 34, 11.5), B(-32, -20, 43, 57, 8.5), B(47, 62, 43, 57, 14), { ...B(-15.6, -8.6, 7.4, 18.9, 6.4), y: 2.95 }], { tile: [18, 15], glow: 1.1, gain: 1.5, seed: 5 });
+  facades(kit, "facade4", [B(-33, -26, 7.4, 17.4, 8.4), B(6.2, 13, 7.4, 17.6, 9.2), B(21.6, 30.6, 7.4, 17, 8.2), B(-11.6, -6.2, -18, -7.4, 8), B(-20, -7, 21, 35.5, 12), B(20, 33, 20, 34, 11.5), B(-32, -20, 43, 57, 8.5), B(47, 62, 43, 57, 14), { ...B(-15.6, -8.6, 7.4, 18.9, 6.4), y: 2.95 }], { tile: [18, 15], glow: 1.2, gain: 2.6, seed: 5 });
   facades(kit, "facade", [B(41, 50, 7.4, 17, 11), B(36, 48, 18.4, 34, 9), B(-18, -7, 43, 57, 10.5)], { tile: [24, 24], glow: 1.1, gain: 1.7, seed: 7 });
   facades(kit, "facade2", [B(51, 62, 7.4, 17, 21), { x: 23, z: -20.1, w: 26.6, d: 21.4, h: 29.9 }], { tile: [24, 24], glow: 1.1, gain: 1.3, seed: 9 });
   // 店先
@@ -145,12 +145,12 @@ function blocks(kit, random) {
 function furniture(kit, random) {
   for (const [z, list] of [[-6.7, [-56, -30, -14, 16, 34, 52]], [6.7, [-58, -44, -22, -4.6, 8, 26, 44, 58]]]) {
     for (const x of list) {
-      streetLamp(kit, x, z, { height: 5.2, power: 7, reach: 11, color: "#ffd9a0", arm: z < 0 ? 0.5 : -0.5 });
+      streetLamp(kit, x, z, { height: 5.2, power: 13, reach: 15, color: "#ffd9a0", arm: z < 0 ? 0.5 : -0.5 });
       kit.pillar(0.08, 5, [x, 0, z]);
     }
   }
   for (const [x, z] of [[-4.6, 22], [4.6, 33], [-4.6, 46], [4.6, 55], [-4.6, -18], [4.6, -28], [-36, 24], [-36, 38], [-20, -33.5], [8, -33.5], [30, -33.5], [22, 39.6], [44, 38.4], [-20, 39.4]]) {
-    streetLamp(kit, x, z, { height: 4.4, power: 5, reach: 9, color: "#ffe2b8", arm: x < 0 ? 0.5 : -0.5 });
+    streetLamp(kit, x, z, { height: 4.4, power: 9, reach: 12, color: "#ffe2b8", arm: x < 0 ? 0.5 : -0.5 });
     kit.pillar(0.08, 4, [x, 0, z]);
   }
   const main = [-60, -34.6, -10, 12, 36, 60].map((x) => powerPole(kit, x, 7.0, 9.6));
@@ -232,7 +232,7 @@ function home(kit, api) {
   // 入口
   kit.box([2.4, 2.5, 0.2], [18, 1.25, 43.42], kit.solid("#3a4248", { metalness: 0.4, roughness: 0.5 }));
   kit.bulb([1.9, 2.0, 0.04], "#ffe2b0", 0.7, [18, 1.1, 43.31]);
-  nameboard(kit, "コーポ風見", [18, 2.75, 43.3], Math.PI, { width: 2.6, height: 0.5, back: "#e8e2d4", ink: "#3a3630" });
+  nameboard(kit, "コーポ風見", [18, 2.75, 43.3], Math.PI, { width: 2.6, height: 0.5, back: "#4a4a46", ink: "#f0e8d8", glow: 0.3 });
   kit.box([3.2, 0.14, 1.4], [18, 3.0, 42.9], roof).userData.pass = true;
   kit.light("#ffe0b0", 4, [18, 2.6, 42.4], 8, 1.5);
   kit.put("bicycle", [11, 0, 42.6], { height: 1.04, yaw: 0.1 });
@@ -262,14 +262,14 @@ function home(kit, api) {
     pane.userData.pass = true;
     kit.block([2.4, 2.1, 0.1], [16.75, 7.1, 50.5]);
     for (const x of [15.7, 20.35]) kit.rbox([0.3, 2.1, 0.12], 0.05, [x, 7.1, 50.3], kit.solid("#6f7f8c", { roughness: 1 }));
-    kit.put("bed", [16.5, 6, 48.2], { yaw: Math.PI / 2, height: 0.62 });
+    kit.put("bed", [16.4, 6, 48.4], { yaw: Math.PI / 2, height: 0.86 });
     kit.put("desk", [19.9, 6, 48.8], { yaw: -Math.PI / 2, height: 1.15 });
     kit.put("bookshelf", [19.8, 6, 46.5], { yaw: 0, height: 1.2 });
     kit.put("minifridge", [16.0, 6, 46.5], { yaw: 0, height: 1.5 });
     kit.put("potplant", [20.2, 6, 50.0], { height: 0.6 });
     kit.rbox([1.5, 0.02, 1.2], 0.01, [18.2, 6.015, 48.2], kit.solid("#4a5a6a", { roughness: 1 }));
-    kit.bulb([0.5, 0.08, 0.5], "#fff0d8", 1.6, [18, 8.62, 48.2]);
-    kit.light("#ffe0b4", 5, [18, 8.2, 48.2], 7, 1.4);
+    kit.bulb([0.5, 0.08, 0.5], "#fff0d8", 1.1, [18, 8.62, 48.2]);
+    kit.light("#ffe0b4", 2.2, [18, 8.0, 48.0], 7, 1.4);
   });
   api.zone(inside, (body) => body.y > 4 && body.z > 40);
   api.area({ x: [15.5, 20.5], z: [46.0, 50.55], y: 6, surface: "wood", indoor: true });
@@ -511,15 +511,18 @@ function outskirts(kit, random) {
   // 南の端：ガードレールと植え込み、その先の家並みと高層ビル
   guardrail(kit, [-64, 58.6], [64, 58.6]);
   kit.scatter("bush", Array.from({ length: some(60) }, (_, i) => ({ position: [-63 + i * 2.1, 0, 60 + random()], yaw: random() * TAU, height: 1 + random() * 0.4 })), { color: "#8f9d84" });
+  // 南は一段低い町：擁壁と、屋根の並び
+  kit.box([200, 9, 0.6], [0, -4.56, 61.2], kit.material("brickwall", { repeat: [24, 1], color: "#7f7c78" })).userData.pass = true;
+  kit.ground([420, 340], -9, kit.material("asphalt", { repeat: [50, 40], color: "#34343f" }), [0, 228]);
   const rows = [];
-  for (let i = 0; i < 46; i += 1) rows.push({ position: [-100 + (i % 23) * 9 + random() * 2, 0, 70 + Math.floor(i / 23) * 13 + random() * 3], yaw: Math.floor(random() * 4) * (Math.PI / 2), scale: 0.95 + random() * 0.25 });
+  for (let i = 0; i < 84; i += 1) rows.push({ position: [-110 + (i % 21) * 11 + random() * 2, -9, 76 + Math.floor(i / 21) * 13 + random() * 3], yaw: Math.floor(random() * 4) * (Math.PI / 2), scale: 0.95 + random() * 0.25 });
   cottages(kit, rows, { walls: ["#7d7684", "#675f70", "#8a7f86"], lit: 0.55, seed: 3 });
   const ring = (x, z) => Math.abs(z) < 26 || (Math.abs(x) < 24 && z < 0);
-  kit.towers({ count: 60, area: { x: [-150, 150], z: [100, 180] }, base: 0, height: [6, 20], width: [10, 16], image: "facade", seed: 7, glow: 0.95, gain: 1.8, kinds: 4 });
-  kit.towers({ count: 60, area: { x: [-260, 260], z: [180, 340] }, base: 0, height: [14, 70], width: [14, 26], image: "facade2", seed: 23, glow: 1.0, gain: 1.4, kinds: 4 });
+  kit.towers({ count: 60, area: { x: [-150, 150], z: [124, 190] }, base: -9, height: [8, 24], width: [10, 16], image: "facade", seed: 7, glow: 0.95, gain: 1.8, kinds: 4 });
+  kit.towers({ count: 60, area: { x: [-260, 260], z: [190, 350] }, base: -9, height: [16, 74], width: [14, 26], image: "facade2", seed: 23, glow: 1.0, gain: 1.4, kinds: 4 });
   kit.towers({ count: 40, area: { x: [-190, 190], z: [-200, -70] }, base: 0, height: [8, 26], width: [10, 18], image: "facade", seed: 17, glow: 1.0, gain: 1.7, avoid: ring, kinds: 4 });
-  kit.towers({ count: 24, area: { x: [-150, -80], z: [30, 120] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 19, glow: 1.0, gain: 1.7, kinds: 3 });
-  kit.towers({ count: 24, area: { x: [80, 150], z: [34, 120] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 29, glow: 1.0, gain: 1.7, kinds: 3 });
+  kit.towers({ count: 24, area: { x: [-150, -84], z: [30, 58] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 19, glow: 1.0, gain: 1.7, kinds: 3 });
+  kit.towers({ count: 24, area: { x: [84, 150], z: [34, 58] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 29, glow: 1.0, gain: 1.7, kinds: 3 });
   kit.towers({ count: 20, area: { x: [80, 150], z: [-120, -34] }, base: 0, height: [8, 30], width: [10, 16], image: "facade", seed: 31, glow: 1.0, gain: 1.7, kinds: 3 });
   kit.towers({ count: 20, area: { x: [-150, -80], z: [-120, -34] }, base: 0, height: [8, 24], width: [10, 16], image: "facade", seed: 37, glow: 1.0, gain: 1.7, kinds: 3 });
   // 街の端を、家と塀でふさぐ
@@ -533,7 +536,7 @@ function outskirts(kit, random) {
     kit.box([58, 1.6, 0.2], [34.6, 0.8, z], wall);
   }
   kit.scatter("tree", [[-58, -46], [-40, -58], [-22, -58], [20, -58], [42, -57], [58, -46], [-60, 39], [60, 39], [28, 57], [-4.8, 57.4]].map(([x, z]) => ({ position: [x, 0, z], yaw: random() * TAU, height: 5 + random() * 2 })), { color: "#8f9a86" });
-  kit.dots(Array.from({ length: 120 }, () => [-170 + random() * 340, 4 + random() * 4, 66 + random() * 200]), "#ffc078", 1.1);
+  kit.dots(Array.from({ length: 120 }, () => [-170 + random() * 340, -5 + random() * 4, 72 + random() * 200]), "#ffc078", 1.1);
   antenna(kit, [-28, 9, 28], { height: 2.4 });
   antenna(kit, [14, 9, 27], { height: 2.4, yaw: 1 });
 }
