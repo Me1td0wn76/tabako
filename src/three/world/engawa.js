@@ -65,8 +65,8 @@ export async function engawa() {
   kit.steam({ at: [0.34, 0.52, -1.42], spread: [0.03, 0.03], count: 5, size: 0.05, grow: 0.12, rise: 0.3, opacity: 0.09, speed: 0.25 });
   kit.put("zabuton", [-0.6, 0, -1.78], { height: 0.11, yaw: 0.15 });
   kit.put("zabuton", [0.78, 0, -1.78], { height: 0.11, yaw: -0.2 });
-  kit.put("andon", [-1.36, 0, -1.72], { height: 0.46, yaw: 0.3, glow: 1.0, threshold: 0.6, tint: "#ffcf90" });
-  kit.light("#ffbe78", 2.0, [-1.12, 0.46, -1.5], 4.5, 1.5, { shadow: true });
+  kit.put("andon", [-1.36, 0, -1.72], { height: 0.46, yaw: 0.3, glow: 0.5, threshold: 0.6, tint: "#ffcf90" });
+  kit.light("#ffbe78", 1.7, [-0.95, 0.62, -1.36], 4.5, 1.5, { shadow: true });
   kit.put("hibachi", [1.34, 0, -1.78], { height: 0.3, glow: 0.8, threshold: 0.6, tint: "#ff7a3a" });
   kit.bulb([0.07], "#ff5a1c", 1.3, [1.34, 0.25, -1.78]).scale.set(1.2, 0.4, 1.2);
   kit.light("#ff7a3a", 0.6, [1.34, 0.48, -1.7], 2.6, 1.6, { flicker: 0.12 });

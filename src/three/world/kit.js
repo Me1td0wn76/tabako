@@ -680,7 +680,7 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
     point.position.set(...position);
     if (shadow && !LIGHT_MODE) {
       point.castShadow = true;
-      point.shadow.mapSize.set(1024, 1024);
+      point.shadow.mapSize.set(512, 512);
       point.shadow.camera.near = 0.15;
       point.shadow.camera.far = distance * SCALE;
       point.shadow.bias = -0.003;
@@ -823,6 +823,23 @@ export async function createKit({ eye, models: modelNames, images: imageNames })
       group,
       update(delta, time, wind) {
         updates.forEach((fn) => fn(delta, time, wind));
+      },
+      // 別の場所へ移ったら、GPU のメモリーを空ける（戻ってきたときに、もう一度送られる）
+      release() {
+        group.traverse((object) => {
+          object.geometry?.dispose();
+          const mat = object.material;
+          if (mat) for (const key of ["map", "bumpMap", "emissiveMap"]) mat[key]?.dispose();
+          if (object.isLight && object.shadow?.map) {
+            object.shadow.dispose();
+            object.shadow.map = null;
+          }
+        });
+        // スマホでは、読み込んだ素材も手放す
+        if (LIGHT_MODE) {
+          modelNames.forEach((name) => models.delete(name));
+          imageNames.forEach((name) => images.delete(name));
+        }
       },
       spot: {
         item: at(spot.item),

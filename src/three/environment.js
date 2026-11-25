@@ -95,7 +95,14 @@ export function createEnvironment(renderer, scene) {
     const entry = await build(id);
     if (currentId === id) return;
     const place = PLACES[id];
-    if (currentKit) currentKit.group.visible = false;
+    if (currentKit) {
+      currentKit.group.visible = false;
+      currentKit.release();
+      if (LIGHT_MODE) {
+        scene.remove(currentKit.group);
+        built.delete(currentId);
+      }
+    }
     current = place;
     currentId = id;
     currentKit = entry.kit;

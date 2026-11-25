@@ -32,7 +32,7 @@ export async function rooftop() {
 
   /* ---- 机と、座っている所 ---- */
   kit.put("crates", [0, 0, -1.42], { height: 0.72, yaw: 0.03 });
-  slats(kit, { width: 1.36, depth: 0.78, y: 0.75, x: 0.02, z0: -1.0, count: 5, thickness: 0.03, mat: kit.material("wood_plank", { repeat: [1, 0.14], color: "#8d7e70", roughness: 0.85, bump: 0.8 }) });
+  slats(kit, { width: 1.36, depth: 0.78, y: 0.75, x: 0.02, z0: -1.0, count: 5, thickness: 0.03, mat: kit.material("wood_plank", { repeat: [1, 0.14], color: "#bcab98", roughness: 0.85, bump: 0.8 }) });
   can(kit, [-0.46, 0.75, -1.56], { color: "#2a2d33", band: "#b9bec4" });
   can(kit, [0.5, 0.75, -1.62], { color: "#6d2a1e", band: "#d8b26a" });
   kit.put("pipechair", [-1.35, 0, -2.5], { yaw: 0.9 });
