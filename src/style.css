@@ -3308,3 +3308,29 @@ h2 {
     gap: 4px;
   }
 }
+
+.stroll-stand {
+  position: absolute;
+  top: 104px;
+  right: 18px;
+  display: none;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(12, 17, 20, 0.8);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.is-touch .stroll-ui.is-seated .stroll-stand {
+  display: block;
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .stroll-stand {
+    top: 92px;
+    right: 12px;
+  }
+}

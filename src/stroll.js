@@ -62,7 +62,7 @@ const REGION_OF = Object.fromEntries(
 );
 const AMBIENCE = { town: "city", lake: "camp", port: "harbor", inn: "engawa" };
 
-export function createStroll({ scene, camera, renderer, environment, container, touch, sfx, keys, toast, lockPointer, unlockPointer, onSmoke, onLeaveSeat, spotCount = 16 }) {
+export function createStroll({ scene, camera, renderer, environment, container, touch, sfx, keys, toast, lockPointer, unlockPointer, onSmoke, onLeaveSeat, onStand, spotCount = 16 }) {
   let world = null;
   let active = false;
   let mode = "walk"; // walk | menu | sit（座る・立つ途中）| seated
@@ -95,6 +95,7 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     <div class="stroll-stamps" aria-label="一服した喫煙所"><b>0</b> / ${spotCount} <small>喫煙所</small></div>
     <button class="stroll-prompt" type="button" hidden><kbd>E</kbd><span></span></button>
     <div class="stroll-buttons only-touch"><button type="button" data-stroll="map">地図</button></div>
+    <button class="stroll-stand only-touch" type="button" data-stroll="stand">消して立つ</button>
     <div class="stroll-menu" role="dialog" aria-modal="true" hidden><div class="stroll-panel"><p class="eyebrow"></p><h3></h3><div class="stroll-cards"></div><button class="ghost-button stroll-cancel" type="button">やめる <kbd>Esc</kbd></button></div></div>
     <div class="stroll-map" role="dialog" aria-label="地図" hidden><div class="stroll-panel"><p class="eyebrow">MAP</p><h3>喫煙所めぐり</h3><div class="stroll-map-body"><canvas width="760" height="560"></canvas><ul class="stroll-list"></ul></div><p class="stroll-legend"><i class="done"></i>一服した　<i class="seen"></i>見つけた　<span>灰皿のある所で吸えます</span></p><button class="ghost-button stroll-cancel" type="button">閉じる <kbd>M</kbd></button></div></div>
     <div class="stroll-fade" aria-hidden="true"></div>`;
@@ -117,6 +118,12 @@ export function createStroll({ scene, camera, renderer, environment, container, 
     event.preventDefault();
     event.stopPropagation();
     openMap();
+  });
+
+  $("[data-stroll=stand]").addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onStand();
   });
 
   function readVisited() {

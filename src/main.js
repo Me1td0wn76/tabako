@@ -611,6 +611,10 @@ const stroll = createStroll({
   },
   onSmoke: strollSmoke,
   onLeaveSeat: strollStandUp,
+  onStand: () => {
+    if (state.phase === "chill") strollPutOut();
+    else if (isPlaying()) strollStandUp();
+  },
 });
 // ひとりごと（画面の下に出る字幕）
 const monologue = document.createElement("p");
