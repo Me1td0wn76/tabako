@@ -323,7 +323,7 @@ try {
   ui.startLabel.textContent = "素材を読み込めませんでした（再読み込みしてください）";
   throw error;
 }
-ui.startButton.disabled = false;
+ui.startLabel.textContent = "最初の場所を組み立てています…";
 
 /* ======================================================================
  * シーン（一人称視点）
@@ -676,6 +676,7 @@ ui.soundToggle.addEventListener("click", toggleSound);
 buildTitle();
 renderSoundToggle();
 renderTitle();
+ui.startButton.disabled = false; // ここまで準備ができて、はじめて押せる
 
 const HELD_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyF", "KeyQ", "KeyE", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
