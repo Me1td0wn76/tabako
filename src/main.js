@@ -3473,5 +3473,6 @@ if (import.meta.env?.DEV) {
     environment,
     stroll,
     strollSmoke,
+    setView,
   };
 }
