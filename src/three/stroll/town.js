@@ -229,7 +229,7 @@ function home(kit, api) {
   api.zone(inside, (body) => body.y > 4 && body.z > 40);
   api.area({ x: [15.5, 20.5], z: [46.0, 50.55], y: 6, surface: "wood", indoor: true });
   api.area({ x: [13.7, 22.3], z: [50.5, 52.1], y: 6, surface: "road" });
-  addSpot(kit, api, { id: "home", name: "自宅のベランダ", ...HOME, eye: BALCONY.eye, table: BALCONY.spot, place: "balcony", build: () => balconySet(kit) });
+  addSpot(kit, api, { id: "home", name: "自宅のベランダ", ...HOME, eye: BALCONY.eye, table: BALCONY.spot, place: "balcony", build: () => balconySet(kit, { walk: true }) });
   kit.block([0.1, 2.6, 1.7], [13.6, 7.3, 51.3]);
   kit.block([0.1, 2.6, 1.7], [22.4, 7.3, 51.3]);
   kit.block([9, 1.3, 0.1], [18, 6.6, 52.16]);

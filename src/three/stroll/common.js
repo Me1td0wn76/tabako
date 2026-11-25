@@ -30,7 +30,7 @@ export function addSpot(kit, api, { seat = null, place = null, build = null, smo
     tray.scale.setScalar(TRAY_SCALE);
     tray.position.set(x, spot.table.y, z);
     holder.add(tray);
-    if (smoke) kit.steam({ at: [x, spot.table.y + 0.05, z], spread: [0.03, 0.03], count: 4, size: 0.03, grow: 0.12, rise: 0.5, opacity: 0.16, speed: 0.2, color: "#d4d8de" });
+    if (smoke) kit.steam({ at: [x, spot.table.y + 0.05, z], spread: [0.03, 0.03], count: 4, size: 0.03, grow: 0.12, rise: 0.5, opacity: 0.1, speed: 0.2, color: "#d4d8de" });
     if (seat) seatMesh = kit.put(seat.model, seat.at, { yaw: seat.yaw ?? 0, height: seat.height ?? null });
   });
   const look = place ? PLACES[place] : null;

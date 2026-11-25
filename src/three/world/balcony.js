@@ -30,9 +30,11 @@ export async function balcony() {
 }
 
 // 手すり・机・花・洗濯物・風鈴
-export function balconySet(kit) {
+// walk = 街歩き（部屋から出入りできるように、床と天井は手すり側だけにして、鉢は床に置く）
+export function balconySet(kit, { walk = false } = {}) {
+  const [deep, middle] = walk ? [1.66, -0.82] : [3.4, -0.1];
   const steel = kit.solid("#7d8288", { metalness: 0.75, roughness: 0.38 });
-  kit.ground([9, 3.4], 0, kit.material("concrete", { repeat: [4, 1.5], color: "#8b8780", bump: 0.4 }), [0, -0.1]);
+  kit.ground([9, deep], 0.002, kit.material("concrete", { repeat: [4, 1.5], color: "#8b8780", bump: 0.4 }), [0, middle]);
   kit.box([9, 0.14, 0.2], [0, 0.07, -1.58], kit.material("concrete", { repeat: [4, 0.1], color: "#9a968f" }));
   kit.tube([[-4.4, 1.2, -1.56], [4.4, 1.2, -1.56]], 0.03, steel, { segments: 4, radial: 12 });
   kit.tube([[-4.4, 0.2, -1.56], [4.4, 0.2, -1.56]], 0.018, steel, { segments: 4 });
@@ -60,18 +62,18 @@ export function balconySet(kit) {
   kit.put("flowers", [-0.92, 1.02, -1.72], { height: 0.36, yaw: 0.04 });
   kit.put("flowers", [1.02, 1.0, -1.72], { height: 0.36, yaw: 3.1, color: "#ffe2ec" });
   kit.put("flowers", [-2.1, 1.02, -1.72], { height: 0.36 });
-  kit.put("palm", [-1.36, 0.18, -1.2], { height: 1.55, yaw: 0.6 });
-  kit.put("potplant", [1.5, 0.35, -1.3], { height: 0.85, yaw: 2 });
+  kit.put("palm", [-1.36, walk ? 0 : 0.18, -1.2], { height: 1.55, yaw: 0.6 });
+  kit.put("potplant", [1.5, walk ? 0 : 0.35, -1.3], { height: walk ? 1.0 : 0.85, yaw: 2 });
   const pole = kit.solid("#c8ccd0", { metalness: 0.6, roughness: 0.3 });
   kit.tube([[-4, 2.21, -1.42], [4, 2.21, -1.42]], 0.016, pole, { segments: 2 });
   kit.put("laundry", [1.16, 1.58, -1.42], { height: 0.64, yaw: 0.05 });
   // となりとの仕切り板
   const partition = kit.solid("#b9b7b2", { roughness: 0.7 });
-  for (const side of [-1, 1]) {
+  for (const side of walk ? [] : [-1, 1]) {
     kit.box([0.03, 1.7, 1.6], [side * 1.62, 1.05, -0.75], partition);
     kit.box([0.06, 2.6, 0.06], [side * 1.62, 1.3, -1.52], steel);
   }
-  kit.ground([9, 3.4], 2.5, kit.material("concrete", { repeat: [4, 1.5], color: "#7b766f" }), [0, 0]).rotation.x = Math.PI / 2;
+  kit.ground([9, walk ? 1.8 : 3.4], 2.5, kit.material("concrete", { repeat: [4, 1.5], color: "#7b766f" }), [0, walk ? -0.8 : 0]).rotation.x = Math.PI / 2;
   kit.box([9, 0.24, 0.14], [0, 2.5, -1.75], kit.material("concrete", { repeat: [4, 0.1], color: "#8d8983" }));
 
   // 風鈴：風の向きに短冊がなびく
