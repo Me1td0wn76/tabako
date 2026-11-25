@@ -42,6 +42,14 @@ const URLS = {
   moth: new URL("./assets/audio/moth.mp3", import.meta.url).href,
   rain: new URL("./assets/audio/rain.mp3", import.meta.url).href,
   wind: new URL("./assets/audio/wind.mp3", import.meta.url).href,
+  stepRoad: new URL("./assets/audio/step_road.mp3", import.meta.url).href,
+  stepDirt: new URL("./assets/audio/step_dirt.mp3", import.meta.url).href,
+  stepSnow: new URL("./assets/audio/step_snow.mp3", import.meta.url).href,
+  stepWood: new URL("./assets/audio/step_wood.mp3", import.meta.url).href,
+  elevator: new URL("./assets/audio/elevator.mp3", import.meta.url).href,
+  door: new URL("./assets/audio/door.mp3", import.meta.url).href,
+  bus: new URL("./assets/audio/bus.mp3", import.meta.url).href,
+  amb_city: new URL("./assets/audio/amb_city.mp3", import.meta.url).href,
   amb_balcony: new URL("./assets/audio/amb_balcony.mp3", import.meta.url).href,
   amb_konbini: new URL("./assets/audio/amb_konbini.mp3", import.meta.url).href,
   amb_rooftop: new URL("./assets/audio/amb_rooftop.mp3", import.meta.url).href,
@@ -260,6 +268,14 @@ export function createAudio() {
     voiceLighter: () => play("voiceLighter", { gain: 1, jitter: 0, from: 0.4 }),
     // 電話の相手の声
     mumble: (pitch = 1) => play(pitch < 1 ? "mumbleA" : "mumbleB", { gain: 0.7, jitter: 0.06 }),
+    // 足音（地面の種類ごと）
+    step(surface, running) {
+      const name = { road: "stepRoad", dirt: "stepDirt", snow: "stepSnow", wood: "stepWood" }[surface] ?? "stepRoad";
+      play(name, { gain: running ? 0.42 : 0.28, rate: 0.96 + Math.random() * 0.1, jitter: 0.08 });
+    },
+    elevator: () => play("elevator", { gain: 0.6, jitter: 0 }),
+    door: () => play("door", { gain: 0.6 }),
+    bus: () => play("bus", { gain: 0.7, jitter: 0 }),
     clear: () => play("clear", { gain: 0.55, jitter: 0 }),
     success: () => play("success", { gain: 0.7, jitter: 0 }),
     fail: () => play("fail", { gain: 0.6, jitter: 0 }),

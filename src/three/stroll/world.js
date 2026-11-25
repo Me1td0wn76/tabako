@@ -220,7 +220,7 @@ export function createStrollWorld({ scene, renderer, capture }) {
 
   /* ---------------- 土地 ---------------- */
 
-  const place = { outdoor: 1, surface: { image: "wood_plank", color: "#a08464", roughness: 0.8 } };
+  const place = { outdoor: 1, walking: true, surface: { image: "wood_plank", color: "#a08464", roughness: 0.8 } };
   const api = (region) => ({
     root,
     area: (area) => areas.push({ surface: "road", ...area, region: region.id }),
@@ -320,6 +320,7 @@ export function createStrollWorld({ scene, renderer, capture }) {
   const eyeAt = new THREE.Vector3();
   function setStance(spot) {
     stance = spot;
+    place.walking = !spot;
     if (spot) {
       eyeAt.set(spot.at[0], spot.at[1] + spot.eye, spot.at[2]);
       root.quaternion.setFromAxisAngle(up, -spot.yaw);
@@ -390,5 +391,6 @@ export function createStrollWorld({ scene, renderer, capture }) {
     get region() {
       return dominant();
     },
+    cars: () => ready.get("town")?.cars,
   };
 }

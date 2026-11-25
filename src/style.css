@@ -2836,3 +2836,328 @@ h2 {
 .scene-wrap[data-phase="ignite"][data-hands="two"] .touch-stick {
   display: grid;
 }
+
+/* ------------------------------------------------------------------ */
+/* ぶらり喫煙の旅                                                      */
+/* ------------------------------------------------------------------ */
+
+.game-layout[data-mode="stroll"] .progress-track,
+.game-layout[data-mode="stroll"] .hud-stats,
+.scene-wrap[data-phase="stroll"] .gauges,
+.scene-wrap[data-phase="stroll"] .guard-chip,
+.scene-wrap[data-phase="stroll"] #stock-chip {
+  display: none;
+}
+
+.game-layout[data-mode="stroll"] .gauge-stress {
+  display: none;
+}
+
+.stroll-ui {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stroll-ui button {
+  pointer-events: auto;
+}
+
+.stroll-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, -50%);
+}
+
+.stroll-ui.is-seated :is(.stroll-dot, .stroll-prompt, .stroll-buttons, .stroll-place) {
+  display: none;
+}
+
+.stroll-place {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  opacity: 0;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
+  transform: translateX(-50%);
+}
+
+.stroll-place small {
+  color: var(--amber);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.stroll-place strong {
+  font-size: clamp(24px, 3.4vw, 40px);
+}
+
+.stroll-place.is-shown {
+  animation: stroll-place 4.6s ease both;
+}
+
+@keyframes stroll-place {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  14%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+
+.stroll-stamps {
+  position: absolute;
+  top: 58px;
+  right: 18px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(10, 16, 20, 0.72);
+  font-family: var(--mono, monospace);
+  font-size: 13px;
+}
+
+.stroll-stamps b {
+  color: var(--amber);
+  font-size: 16px;
+}
+
+.stroll-prompt {
+  position: absolute;
+  bottom: 92px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  padding: 11px 18px;
+  border: 1px solid var(--amber);
+  border-radius: 12px;
+  background: rgba(12, 17, 20, 0.88);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  gap: 10px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.stroll-prompt[hidden] {
+  display: none;
+}
+
+.stroll-buttons {
+  position: absolute;
+  top: 104px;
+  right: 18px;
+}
+
+.stroll-buttons button {
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(12, 17, 20, 0.8);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stroll-menu,
+.stroll-map {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  background: rgba(5, 8, 11, 0.62);
+  pointer-events: auto;
+  place-items: center;
+}
+
+.stroll-menu[hidden],
+.stroll-map[hidden] {
+  display: none;
+}
+
+.stroll-panel {
+  display: grid;
+  width: min(760px, 94%);
+  max-height: 94%;
+  overflow: auto;
+  padding: 20px 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  background: rgba(14, 20, 24, 0.97);
+  gap: 12px;
+}
+
+.stroll-panel h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.stroll-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.stroll-card {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  padding: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  cursor: pointer;
+  gap: 6px;
+  text-align: left;
+}
+
+.stroll-card:hover,
+.stroll-card:focus-visible {
+  border-color: var(--amber);
+  background: rgba(255, 180, 90, 0.1);
+}
+
+.stroll-card strong {
+  font-size: 17px;
+}
+
+.stroll-card small {
+  color: #a6b5ad;
+  font-size: 12px;
+}
+
+.stroll-cancel {
+  justify-self: start;
+}
+
+.stroll-map canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.stroll-legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  color: #a6b5ad;
+  font-size: 12px;
+  gap: 6px 14px;
+}
+
+.stroll-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.stroll-legend i.done {
+  background: #ffb35a;
+}
+
+.stroll-fade {
+  position: absolute;
+  inset: 0;
+  background: #05070a;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.stroll-fade.is-dark {
+  opacity: 1;
+}
+
+.monologue {
+  position: absolute;
+  z-index: 9;
+  bottom: 15%;
+  left: 50%;
+  max-width: 86%;
+  margin: 0;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: rgba(6, 9, 12, 0.66);
+  color: #f6f1e4;
+  font-size: clamp(15px, 1.7vw, 19px);
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+  transform: translate(-50%, 6px);
+  transition: opacity 0.5s, transform 0.5s;
+}
+
+.monologue.is-shown {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.scene-wrap[data-phase="stroll"] .touch-stick {
+  display: block;
+}
+
+.scene-wrap[data-phase="stroll"] .key-hints {
+  opacity: 0.8;
+}
+
+.mode-stroll .mode-level {
+  color: #8fd0ff;
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .stroll-prompt {
+    bottom: 26px;
+    padding: 9px 14px;
+    font-size: 14px;
+  }
+
+  .stroll-prompt kbd {
+    display: none;
+  }
+
+  .stroll-stamps {
+    top: 52px;
+    right: 12px;
+  }
+
+  .stroll-buttons {
+    top: 92px;
+    right: 12px;
+  }
+
+  .stroll-panel {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .stroll-map canvas {
+    max-height: 58vh;
+    object-fit: contain;
+  }
+
+  .monologue {
+    bottom: 22%;
+  }
+}

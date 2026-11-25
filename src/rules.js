@@ -106,6 +106,10 @@ export const DIFFICULTIES = {
   },
 };
 
+// ぶらり喫煙の旅：急がない。マッチも息も余裕がある
+export const STROLL_RULES = rules({ breath: 1.3, heatRate: 1.15, stock: Infinity, match: { ...MATCH.gentlePaper, sweet: [0.22, 0.84] }, stress: 0 });
+export const STROLL_AFTER = 3; // まったり喫煙で、これだけ吸うと外に出たくなる
+
 // まったり喫煙を解放するのに必要な難易度
 export const CHILL_KEYS = ["easy", "normal", "hard"];
 

@@ -38,7 +38,7 @@ const ease = (t) => {
 };
 const span = (t, [from, to]) => ease((t - from) / (to - from));
 
-export function createSmoker({ scene, camera, cig, ashtray, smoke, sfx, leftArm, rightArm, lighterRig, lighter, elbows, toast, onCough }) {
+export function createSmoker({ scene, camera, cig, ashtray, smoke, sfx, leftArm, rightArm, lighterRig, lighter, elbows, toast, onCough, onFinish }) {
   const rig = createSmokeRig();
   rig.group.visible = false;
   scene.add(rig.group);
@@ -204,7 +204,11 @@ export function createSmoker({ scene, camera, cig, ashtray, smoke, sfx, leftArm,
     state.tapped = 0;
   }
 
-  function start() {
+  // options: lit = 火のついた 1 本を口にくわえた所から, once = 1 本で終わる, onEnd = 終わったとき
+  let options = {};
+  function start(next = {}) {
+    options = next;
+    leftArm.group.visible = true;
     Object.assign(state, {
       time: 0, count: 0, mouth: 0, inhaling: false, lung: 0, coughLock: 0, exhaleAmount: 0, exhalePending: 0, breath: 0,
       consumed: 0, ash: 0, lit: 0, flameLit: false, smokeTimer: 0, stubbed: false,
@@ -216,11 +220,21 @@ export function createSmoker({ scene, camera, cig, ashtray, smoke, sfx, leftArm,
     cig.group.visible = true;
     rig.group.visible = true;
     cig.setConsumed(0, 0);
-    setAction("light");
+    if (options.lit) {
+      Object.assign(state, { lit: 1, mouth: 1, exhaleAmount: 0.45, exhalePending: 0.4 });
+      setAction("free");
+    } else setAction("light");
+  }
+
+  // 途中でもみ消す
+  function putOut() {
+    if (state.action === "free") setAction("stub");
+    return state.action;
   }
 
   function stop() {
     rig.group.visible = false;
+    leftArm.group.visible = true;
     state.flameLit = false;
     litter.clear();
     butts.length = 0;
@@ -385,11 +399,17 @@ export function createSmoker({ scene, camera, cig, ashtray, smoke, sfx, leftArm,
           state.count += 1;
           leaveButt();
           cig.group.visible = false;
-          toast(`${state.count} 本吸い終わった`, "good");
+          if (!options.once) toast(`${state.count} 本吸い終わった`, "good");
+          onFinish?.(state.count);
         }
         applyPoseTo(mix(poseB, belowPose(poseA), span(state.t, [STUB.release, STUB.end])));
       }
-      if (state.t >= STUB.end) {
+      if (state.t >= STUB.end && options.once) {
+        setAction("done");
+        rig.group.visible = false;
+        leftArm.group.visible = false;
+        options.onEnd?.();
+      } else if (state.t >= STUB.end) {
         // 次の 1 本
         state.stubbed = false;
         state.consumed = 0;
@@ -422,5 +442,5 @@ export function createSmoker({ scene, camera, cig, ashtray, smoke, sfx, leftArm,
     }
   }
 
-  return { state, start, stop, update, setMouth, rig };
+  return { state, start, stop, putOut, update, setMouth, rig };
 }

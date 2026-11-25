@@ -91,18 +91,60 @@ export function createEnvironment(renderer, scene) {
     });
   }
 
+  const ownLights = [sky, lamp, moon, fill];
+  // いまの場所を片付ける
+  function leave() {
+    if (!currentKit) return;
+    currentKit.group.visible = false;
+    currentKit.release();
+    if (LIGHT_MODE && built.has(currentId)) {
+      scene.remove(currentKit.group);
+      built.delete(currentId);
+    }
+    currentKit = null;
+  }
+
+  // 街歩きなど、空も灯りも自分で持っている世界に切り替える
+  function setExternal(world) {
+    if (currentKit !== world) leave();
+    current = world.place;
+    currentId = "external";
+    currentKit = world;
+    ownLights.forEach((light) => {
+      light.visible = false;
+    });
+  }
+
+  // いまの場所を写して、写り込みと点火画面の背景を作り直す
+  let external = null;
+  function capture(eye = EYE, { blur = true } = {}) {
+    const toneMapping = renderer.toneMapping;
+    renderer.toneMapping = THREE.NoToneMapping;
+    withPlaceOnly(currentKit, () => {
+      renderer.shadowMap.needsUpdate = true;
+      scene.environment = null;
+      const next = pmrem.fromScene(scene, 0.015, 0.3, 1400, { position: eye });
+      scene.environment = next.texture;
+      external?.dispose();
+      external = next;
+      if (blur) {
+        renderer.setRenderTarget(blurTarget);
+        renderer.clear();
+        renderer.render(scene, blurCamera);
+        renderer.setRenderTarget(null);
+      }
+    });
+    renderer.toneMapping = toneMapping;
+  }
+
   async function setPlace(id) {
     const entry = await build(id);
     if (currentId === id) return;
     const place = PLACES[id];
-    if (currentKit) {
-      currentKit.group.visible = false;
-      currentKit.release();
-      if (LIGHT_MODE) {
-        scene.remove(currentKit.group);
-        built.delete(currentId);
-      }
-    }
+    leave();
+    ownLights.forEach((light) => {
+      light.visible = true;
+    });
     current = place;
     currentId = id;
     currentKit = entry.kit;
@@ -144,6 +186,8 @@ export function createEnvironment(renderer, scene) {
 
   return {
     setPlace,
+    setExternal,
+    capture,
     preload: build,
     blurTexture: blurTarget.texture,
     // 道具・スマホ・灰皿を置く所（ワールド座標）
@@ -162,7 +206,7 @@ export function createEnvironment(renderer, scene) {
         const wave = Math.sin(time * 11) * 0.5 + Math.sin(time * 17.3 + 1) * 0.3 + Math.sin(time * 29 + 2) * 0.2;
         lamp.intensity = current.light.lamp[1] * (1 + wave * current.flicker);
       }
-      streaks.visible = (current?.outdoor ?? 1) > 0;
+      streaks.visible = (current?.outdoor ?? 1) > 0 && !current?.walking;
       if (!streaks.visible) return;
       const flow = -windDir;
       streakData.forEach((s, i) => {

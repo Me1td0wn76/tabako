@@ -5,8 +5,9 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { AVATAR_URLS, loadAssets } from "./assets.js";
 import { createAudio } from "./audio.js";
-import { CHILL_KEYS, DIFFICULTIES, FAIL_LINE, STRESS, tremorOf, unlimitedRound } from "./rules.js";
+import { CHILL_KEYS, DIFFICULTIES, FAIL_LINE, STRESS, STROLL_AFTER, STROLL_RULES, tremorOf, unlimitedRound } from "./rules.js";
 import { PLACES, PLACE_IDS } from "./places.js";
+import { createStroll } from "./stroll.js";
 import { createTouch, enterFullscreen } from "./touch.js";
 import { createEnvironment } from "./three/environment.js";
 import { POSES, applyPose, approachPose, blendPose, clonePose, createArm } from "./three/hand.js";
@@ -115,6 +116,8 @@ const STORAGE = {
   difficulty: "windproof-difficulty",
   chillPlace: "windproof-chill-place",
   unlimited: "windproof-unlimited-best",
+  chillCount: "windproof-chill-count",
+  stroll: "windproof-stroll-unlocked",
 };
 
 const ICONS = {
@@ -174,7 +177,11 @@ const PHASE_LABEL = {
   success: "SUCCESS",
   failed: "FAILED",
   chill: "CHILL",
+  stroll: "STROLL",
 };
+
+// まったり喫煙で吸い終わるたびの、ひとりごと
+const MURMURS = ["……うまい。", "ここで吸うのも、悪くないけどな。", "そろそろ、外に出たいなぁ……。"];
 
 /* ======================================================================
  * DOM
@@ -335,6 +342,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.08, 1400);
 camera.position.copy(CAMERA_BASE);
 camera.lookAt(0, 1, 0);
+const cameraQuaternion = camera.quaternion.clone(); // いつもの視点の向き（街歩きから戻すとき）
 scene.add(camera);
 
 const environment = createEnvironment(renderer, scene);
@@ -489,7 +497,8 @@ const shieldQuaternion = new THREE.Quaternion();
 
 const state = {
   phase: "ready",
-  mode: "challenge", // challenge | unlimited | chill
+  mode: "challenge", // challenge | unlimited | chill | stroll
+  standAfter: false, // ぶらり：もみ消したら立ち上がる
   spec: DIFFICULTIES.easy, // いまの難易度（チャレンジでは 1 本ごとに変わる）
   rules: DIFFICULTIES.easy.rules,
   stress: 0,
@@ -581,9 +590,40 @@ const smoker = createSmoker({
   elbows: { left: ELBOW_LEFT, right: ELBOW_RIGHT },
   toast,
   onCough: chillCough,
+  onFinish: cigaretteDone,
 });
 smoker.setMouth(cigRestPosition, cigRestQuaternion);
 await changePlace("balcony");
+
+const stroll = createStroll({
+  scene,
+  camera,
+  renderer,
+  environment,
+  container: ui.sceneWrap,
+  touch,
+  sfx,
+  keys: pressedKeys,
+  toast,
+  lockPointer,
+  unlockPointer: () => {
+    if (document.pointerLockElement) document.exitPointerLock?.();
+  },
+  onSmoke: strollSmoke,
+  onLeaveSeat: strollStandUp,
+});
+// ひとりごと（画面の下に出る字幕）
+const monologue = document.createElement("p");
+monologue.className = "monologue";
+monologue.setAttribute("aria-live", "polite");
+ui.sceneWrap.append(monologue);
+let monologueTimer = 0;
+function say(text, seconds = 4.2) {
+  monologue.textContent = text;
+  monologue.classList.add("is-shown");
+  clearTimeout(monologueTimer);
+  monologueTimer = setTimeout(() => monologue.classList.remove("is-shown"), seconds * 1000);
+}
 
 function newStats() {
   return { attempts: 0, drops: 0, flameOuts: 0, coughs: 0, burns: 0, eventsCleared: 0, eventsTotal: 0 };
@@ -626,16 +666,23 @@ buildTitle();
 renderSoundToggle();
 renderTitle();
 
-const HELD_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyF", "KeyQ", "KeyE"]);
+const HELD_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyF", "KeyQ", "KeyE", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
 function onKeyDown(event) {
   const code = event.code;
   const inGame = !ui.gameLayout.hidden;
   if (inGame && (HELD_KEYS.has(code) || code === "Space" || code.startsWith("Arrow"))) event.preventDefault();
   if (HELD_KEYS.has(code)) pressedKeys.add(code);
-  if (code === "ShiftLeft" || code === "ShiftRight") state.cupHeld = true;
+  if (code === "ShiftLeft" || code === "ShiftRight") {
+    state.cupHeld = true;
+    pressedKeys.add("Shift");
+  }
   if (event.repeat || ui.help.open) return;
 
+  if (!state.paused && stroll.active && (state.phase === "stroll" || stroll.menuOpen) && stroll.onKey(code)) {
+    event.preventDefault();
+    return;
+  }
   if (state.paused) {
     if (code === "KeyQ") resetToTitle();
     else if (code === "Enter" || code === "Escape" || code === "KeyP") resumeFromPause();
@@ -648,8 +695,13 @@ function onKeyDown(event) {
   }
   if (code === "KeyR" && inGame) {
     // 左手のキーの隣なので、プレイ中は長押しでだけ戻る
-    if (isTiming()) state.titleHold = 1e-4;
+    if (isTiming() || state.phase === "stroll") state.titleHold = 1e-4;
+    else if (state.mode === "stroll") strollPutOut();
     else resetToTitle();
+    return;
+  }
+  if (code === "KeyE" && state.mode === "stroll" && state.phase === "chill") {
+    strollPutOut();
     return;
   }
   if (code === "Enter" && (state.phase === "ready" || state.phase === "success" || state.phase === "failed")) {
@@ -671,7 +723,10 @@ function onKeyUp(event) {
   carriedKeys.delete(event.code);
   if (event.code === "KeyR") state.titleHold = 0;
   if (event.code === "Space") state.keyInhale = false;
-  if (event.code === "ShiftLeft" || event.code === "ShiftRight") state.cupHeld = false;
+  if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+    state.cupHeld = false;
+    pressedKeys.delete("Shift");
+  }
 }
 
 function onWindowBlur() {
@@ -709,6 +764,10 @@ function onPointerMove(event) {
   if (isPhoneOpen()) {
     if (event.pointerType !== "touch") movePhoneFinger(dx, dy);
     else if (event.currentTarget === ui.phoneUi) movePhoneFinger(...touchOnPhone(event));
+    return;
+  }
+  if (state.phase === "stroll") {
+    stroll.addLook(dx, dy, event.pointerType === "touch");
     return;
   }
   if (state.phase === "ignite") {
@@ -763,6 +822,17 @@ function onPointerDown(event) {
     return;
   }
   if (event.button !== 0) return;
+  if (state.phase === "stroll") {
+    if (event.pointerType === "touch") {
+      if (touchPointer.id !== null) return;
+      touchPointer.id = event.pointerId;
+      touchPointer.x = event.clientX;
+      touchPointer.y = event.clientY;
+      ui.mount.setPointerCapture?.(event.pointerId);
+    } else if (document.pointerLockElement === ui.mount) stroll.interact();
+    else lockPointer();
+    return;
+  }
   if (state.phase === "pickup") {
     lockPointer();
     pickUp();
@@ -828,7 +898,7 @@ function lockPointer() {
 }
 
 function canPause() {
-  return isTiming() || state.phase === "chill";
+  return isTiming() || state.phase === "chill" || (state.phase === "stroll" && !stroll.menuOpen);
 }
 
 function onPointerLockChange() {
@@ -920,13 +990,18 @@ function toggleSound() {
  * タイトル画面（難易度の選択）
  * ==================================================================== */
 
+function strollUnlocked() {
+  return readSetting(STORAGE.stroll, "") === "yes";
+}
+
 function chillUnlocked() {
   return CHILL_KEYS.every((key) => cleared.has(key));
 }
 
 function selectMode(mode) {
   if (mode === "chill" && !chillUnlocked()) return;
-  const special = mode === "chill" || mode === "unlimited";
+  if (mode === "stroll" && !strollUnlocked()) return;
+  const special = mode === "chill" || mode === "unlimited" || mode === "stroll";
   state.mode = special ? mode : "challenge";
   if (!special) {
     state.difficulty = mode;
@@ -936,12 +1011,12 @@ function selectMode(mode) {
   if (mode === "chill") ui.placePicker.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
-function modeCard({ key, level, title, note, limits, place, className = "" }) {
+function modeCard({ key, level, title, note, limits, place, thumb = PLACES[place].thumb, className = "" }) {
   const card = document.createElement("button");
   card.type = "button";
   card.className = `mode-card ${className}`;
   card.innerHTML = `
-    <span class="mode-thumb" style="background-image:url('${PLACES[place].thumb}')"></span>
+    <span class="mode-thumb" style="background-image:url('${thumb}')"></span>
     <span class="mode-body">
       <span class="mode-level">${level}</span>
       <strong>${title}</strong>
@@ -982,6 +1057,17 @@ function buildTitle() {
   });
   ui.chillCard.id = "mode-chill";
   ui.chillCard.querySelector(".mode-foot").innerHTML = `<span class="mode-lock" data-lock>${ICONS.lock}かんたん〜むずかしいをクリアで解放</span>`;
+  ui.strollCard = modeCard({
+    key: "stroll",
+    level: "旅",
+    title: "ぶらり喫煙の旅",
+    note: "街・キャンプ地・港・旅館を歩き、灰皿のある所で一服する。",
+    limits: ["時間もお邪魔もなし", "喫煙所 16 か所"],
+    thumb: new URL("./assets/images/thumb_stroll.jpg", import.meta.url).href,
+    className: "mode-stroll",
+  });
+  ui.strollCard.id = "mode-stroll";
+  ui.strollCard.querySelector(".mode-foot").innerHTML = `<span class="mode-lock" data-lock>${ICONS.lock}まったり喫煙で何本か吸うと……</span><span data-stamps></span>`;
   if (!PLACES[state.chillPlace]) state.chillPlace = PLACE_IDS[0];
   ui.placeList.setAttribute("role", "radiogroup");
   ui.placeList.setAttribute("aria-label", "場所");
@@ -1026,16 +1112,23 @@ function renderTitle() {
   ui.chillCard.classList.toggle("is-locked", !unlocked);
   ui.chillCard.setAttribute("aria-pressed", String(state.mode === "chill"));
   ui.chillCard.querySelector("[data-lock]").hidden = unlocked;
+  const strollOpen = strollUnlocked();
+  ui.strollCard.disabled = !strollOpen;
+  ui.strollCard.classList.toggle("is-locked", !strollOpen);
+  ui.strollCard.setAttribute("aria-pressed", String(state.mode === "stroll"));
+  ui.strollCard.querySelector("[data-lock]").hidden = strollOpen;
+  ui.strollCard.querySelector("[data-stamps]").textContent = strollOpen ? `喫煙所 ${stroll.visited.size} / 16` : "";
   ui.placePicker.hidden = state.mode !== "chill";
   ui.placeCards.forEach((card) => card.setAttribute("aria-checked", String(card.dataset.place === state.chillPlace)));
   // 選んだ場所を先に組み立てておく
-  const nextPlace = state.mode === "chill" ? state.chillPlace : state.mode === "unlimited" ? unlimitedRound(0).place : DIFFICULTIES[state.difficulty].place;
-  environment.preload(nextPlace).catch(() => {});
+  const nextPlace = state.mode === "stroll" ? null : state.mode === "chill" ? state.chillPlace : state.mode === "unlimited" ? unlimitedRound(0).place : DIFFICULTIES[state.difficulty].place;
+  if (nextPlace) environment.preload(nextPlace).catch(() => {});
   renderStartLabel();
 }
 
 function renderStartLabel() {
   if (state.mode === "chill") ui.startLabel.textContent = `${PLACES[state.chillPlace].label}で、まったり吸う`;
+  else if (state.mode === "stroll") ui.startLabel.textContent = "旅に出る";
   else if (state.mode === "unlimited") ui.startLabel.textContent = "チャレンジを始める";
   else ui.startLabel.textContent = `${DIFFICULTIES[state.difficulty].label}（${TOOLS[DIFFICULTIES[state.difficulty].tool].label}）でスタート`;
 }
@@ -1043,6 +1136,7 @@ function renderStartLabel() {
 function startSelected() {
   if (touch.active) enterFullscreen();
   if (state.mode === "chill") startChill();
+  else if (state.mode === "stroll") startStroll();
   else if (state.mode === "unlimited") startUnlimited();
   else startGame(state.difficulty);
 }
@@ -1136,7 +1230,7 @@ function matchStock() {
  * -------------------------------------------------------------------- */
 
 function addStress(amount) {
-  if (state.mode === "chill") return;
+  if (state.mode === "chill" || state.mode === "stroll") return;
   state.stress = clamp(state.stress + amount * state.rules.stress, 0, 1);
 }
 
@@ -1145,7 +1239,7 @@ function relieveStress(amount) {
 }
 
 function updateRules(delta) {
-  if (!isTiming()) return;
+  if (!isTiming() || state.mode === "stroll") return;
   addStress(STRESS.time * delta);
   if (state.phase === "light" && state.puffing) relieveStress(STRESS.inhale * delta);
   if (state.rules.stressOut && state.stress >= 1) {
@@ -1179,6 +1273,7 @@ function updateRules(delta) {
 
 function resetToTitle() {
   if (document.pointerLockElement) document.exitPointerLock?.();
+  if (stroll.active) leaveStroll();
   resetRun();
   // タイトル画面では毎フレームの更新が止まるので、雨音はここで消しておく
   sfx.stopAll();
@@ -1194,8 +1289,9 @@ function resetRun() {
   releaseAllInput();
   ui.gameLayout.dataset.mode = state.mode;
   smoker.stop();
-  placeAshtray(state.mode === "chill" ? "chill" : "challenge");
-  phone.group.visible = state.mode !== "chill";
+  const relaxed = state.mode === "chill" || state.mode === "stroll";
+  placeAshtray(relaxed ? "chill" : "challenge");
+  phone.group.visible = !relaxed;
   Object.assign(state, {
     paused: false,
     elapsed: 0,
@@ -1250,7 +1346,7 @@ function resetRun() {
   ui.sceneWrap.dataset.blind = String(state.rules.blind && state.mode !== "chill");
   ui.sceneWrap.dataset.gas = String(state.rules.gas !== null && state.tool === "lighter");
   Object.entries(tableItems).forEach(([tool, item]) => {
-    item.visible = tool === state.tool && state.mode !== "chill";
+    item.visible = tool === state.tool && !relaxed;
   });
   placeItem();
   Object.values(matchRigs).forEach((rig) => rig.match.setBurn(0, 0));
@@ -1305,7 +1401,8 @@ function renderHints() {
     light: match
       ? [["MOUSE", "炎を先端へ"], ["SPACE", "吸う"], ["WASD / SHIFT", "風よけ"], ["Q / E", "手首"], ["F", "かざす"]]
       : [["CLICK 長押し", "ガス"], ["MOUSE", "炎を先端へ"], ["SPACE", "吸う"], ["WASD / SHIFT", "風よけ"], ["Q / E", "手首"], ["F", "かざす"]],
-    chill: [["SPACE 長押し", "吸う"], ["離す", "吐く"], ["F", "灰を落とす"], ["R", "タイトルへ"]],
+    chill: [["SPACE 長押し", "吸う"], ["離す", "吐く"], ["F", "灰を落とす"], state.mode === "stroll" ? ["E", "消して立つ"] : ["R", "タイトルへ"]],
+    stroll: touch.active ? [] : [["WASD", "歩く"], ["SHIFT", "走る"], ["MOUSE", "見まわす"], ["E", "調べる"], ["M", "地図"], ["R 長押し", "タイトルへ"]],
   }[state.phase] ?? [];
   ui.keyHints.innerHTML = hints.map(([key, label]) => `<span class="hint"><kbd>${key}</kbd>${label}</span>`).join("");
 }
@@ -1332,6 +1429,10 @@ function isMatchTool() {
 function renderDifficultyChip() {
   if (state.mode === "chill") {
     setText(ui.difficultyChip, `まったり喫煙・${PLACES[state.chillPlace].label}`);
+    return;
+  }
+  if (state.mode === "stroll") {
+    setText(ui.difficultyChip, `ぶらり喫煙の旅${stroll.world?.stance ? `・${stroll.world.stance.name}` : ""}`);
     return;
   }
   setText(ui.difficultyChip, `${state.spec.label}・${TOOLS[state.tool].label}・${PLACES[state.spec.place].label}`);
@@ -1703,6 +1804,10 @@ function rankFor(difficulty, seconds) {
 }
 
 function winGame() {
+  if (state.mode === "stroll") {
+    strollLit();
+    return;
+  }
   clearEvent();
   closePhoneUi();
   setPhase("success");
@@ -1812,6 +1917,152 @@ function startChill() {
   });
 }
 
+// 1 本吸い終わったとき。何本か吸うと、外に出たくなる
+function cigaretteDone() {
+  if (state.mode !== "chill") return;
+  const total = Number(readSetting(STORAGE.chillCount, "0")) + 1;
+  writeSetting(STORAGE.chillCount, String(total));
+  if (strollUnlocked()) return;
+  setTimeout(() => {
+    if (state.phase === "chill") say(MURMURS[Math.min(total, STROLL_AFTER, MURMURS.length) - 1], 5);
+  }, 900);
+  if (total >= STROLL_AFTER) {
+    writeSetting(STORAGE.stroll, "yes");
+    setTimeout(() => toast("「ぶらり喫煙の旅」が解放された！", "good"), 3600);
+  }
+}
+
+/* ======================================================================
+ * ぶらり喫煙の旅（まったり喫煙で何本か吸うと遊べる）
+ * ==================================================================== */
+
+// 歩いている間は、手と道具をしまっておく
+function setHandsVisible(visible) {
+  shieldHand.root.visible = visible;
+  leftArm.group.visible = visible;
+  rightArm.group.visible = visible;
+  cig.group.visible = visible;
+  ashtray.visible = visible;
+  if (visible) return;
+  lighterRig.group.visible = false;
+  Object.values(matchRigs).forEach((rig) => {
+    rig.group.visible = false;
+  });
+  Object.values(tableItems).forEach((item) => {
+    item.visible = false;
+  });
+  flame.mesh.visible = false;
+  flame.halo.visible = false;
+  emberGlow.visible = false;
+  flameLight.intensity = 0;
+  emberLight.intensity = 0;
+  smoke.clear();
+}
+
+async function startStroll() {
+  if (!strollUnlocked() || !["ready", "success", "failed"].includes(state.phase)) return;
+  sfx.unlock();
+  document.activeElement?.blur?.();
+  state.mode = "stroll";
+  state.tool = "lighter";
+  state.spec = { label: "ぶらり喫煙の旅", tool: "lighter", place: "balcony" };
+  state.rules = STROLL_RULES;
+  placeRequest += 1;
+  const request = placeRequest;
+  ui.startButton.disabled = true;
+  ui.startLabel.textContent = "旅の支度をしています…";
+  try {
+    await stroll.enter();
+  } catch (error) {
+    console.error(error);
+    toast("地図を読み込めなかった。もう一度試して", "danger");
+    stroll.leave();
+    return;
+  } finally {
+    ui.startButton.disabled = false;
+    renderStartLabel();
+  }
+  if (request !== placeRequest) return;
+  currentPlace.id = "stroll";
+  ui.startScreen.hidden = true;
+  ui.gameLayout.hidden = false;
+  resetRun();
+  setHandsVisible(false);
+  hideMessage();
+  setPhase("stroll");
+  resizeRenderer();
+  lockPointer();
+  setTimeout(() => {
+    if (state.phase === "stroll") say("……よし。煙草を持って、ぶらっと出かけるか。", 5);
+  }, 900);
+}
+
+function leaveStroll() {
+  stroll.leave();
+  setHandsVisible(true);
+  camera.position.copy(CAMERA_BASE);
+  camera.quaternion.copy(cameraQuaternion);
+  camera.updateMatrixWorld(true);
+  monologue.classList.remove("is-shown");
+}
+
+// 座って、選んだ道具で火をつける
+function strollSmoke(spot, tool) {
+  camera.position.copy(CAMERA_BASE);
+  camera.quaternion.copy(cameraQuaternion);
+  camera.updateMatrixWorld(true);
+  state.tool = tool;
+  state.spec = { label: spot.name, tool, place: "balcony" };
+  state.rules = STROLL_RULES;
+  state.standAfter = false;
+  resetRun();
+  setHandsVisible(true);
+  placeThings();
+  Object.values(closeups).forEach((closeup) => closeup?.setPlace(environment.blurTexture, scene.environment, environment.place.surface));
+  if (tool === "lighter") sfx.pickup();
+  else sfx.matchTake();
+  state.hintedIgnite = false;
+  enterIgnite({ fresh: true });
+}
+
+// 火がついたら、そのまま吸う
+function strollLit() {
+  state.thumbDown = false;
+  sfx.clear();
+  flash("ignite");
+  setPhase("chill");
+  setStep(2);
+  smoker.start({
+    lit: true,
+    once: true,
+    onEnd: () => {
+      if (state.standAfter) strollStandUp();
+      else stroll.afterSmoke();
+    },
+  });
+  const line = stroll.stamp(stroll.world.stance);
+  setTimeout(() => {
+    if (state.phase === "chill" && state.mode === "stroll") say(line, 5);
+  }, 2200);
+}
+
+function strollPutOut() {
+  if (stroll.menuOpen) return;
+  state.standAfter = true;
+  smoker.putOut();
+}
+
+function strollStandUp() {
+  state.titleHold = 0;
+  state.thumbDown = false;
+  smoker.stop();
+  setView("main");
+  setHandsVisible(false);
+  stroll.standUp();
+  setPhase("stroll");
+  renderDifficultyChip();
+}
+
 function chillCough() {
   state.shake = Math.max(state.shake, 0.55);
   sfx.cough();
@@ -1843,6 +2094,7 @@ const EVENTS = {
 };
 
 function updateEvents(delta) {
+  if (state.mode === "stroll") return;
   const ev = state.event;
   if (!ev) {
     if (state.elapsed >= state.nextEventAt && !state.transition) {
@@ -2851,7 +3103,7 @@ function updateHud() {
 
   // マッチの残り
   ui.stockChip.hidden = !isMatchTool() || state.mode === "chill" || !["pickup", "grab", "ignite", "light"].includes(state.phase);
-  setText(ui.stockChip.lastElementChild, `×${state.matchesLeft}`);
+  setText(ui.stockChip.lastElementChild, Number.isFinite(state.matchesLeft) ? `×${state.matchesLeft}` : "∞");
 
   // 吸いつけのゲージ
   setBar(ui.flameBar, state.stability);
@@ -3138,12 +3390,20 @@ function animate() {
   if (state.titleHold > 0) {
     state.titleHold += delta;
     if (state.titleHold >= TITLE_HOLD) {
-      resetToTitle();
+      // ぶらり：火をつけている途中なら、立ち上がって歩きに戻るだけ
+      if (state.mode === "stroll" && state.phase !== "stroll") strollStandUp();
+      else resetToTitle();
       return;
     }
   }
 
   updateWind(delta);
+  if (state.phase === "stroll") {
+    stroll.update(delta);
+    updateHud();
+    composer.render();
+    return;
+  }
   updateLeftHandKeys(delta);
   updateThumbGrace(delta);
   // 経過時間はゲーム内時間で数える（FPS が落ちても動きの速さとずれない）
@@ -3211,5 +3471,7 @@ if (import.meta.env?.DEV) {
     scene,
     renderer,
     environment,
+    stroll,
+    strollSmoke,
   };
 }
